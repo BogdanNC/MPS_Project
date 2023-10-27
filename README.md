@@ -1,14 +1,14 @@
-# MPS_Project
+# MPS_Project<br />
 
-Team Lead - Bogdan;
-Dev 1 - Maria;
-Dev 2 - Albert;
-Dev 3 - Claudiu;
-Project Manager - Cosmin;
-"Tester" - Alex;
+Team Lead - Bogdan<br />
+Dev 1 - Maria<br />
+Dev 2 - Albert<br />
+Dev 3 - Claudiu<br />
+Project Manager - Cosmin<br />
+"Tester" - Alex<br />
 
-Vom folosi Java ca limbaj de programare.;
-Metodologia de organizare va fi Agile.; 
-Ne vom structura munca pe sprint-uri de 1 saptamana.;
-Vom avea mai multe ceremonii : retro , daily, review si planning; 
-Pentru o comunicare eficienta in echipa vom avea un server de discord si un grup de whatsapp.;
+Vom folosi Java ca limbaj de programare.<br />
+Metodologia de organizare va fi Agile.<br />
+Ne vom structura munca pe sprint-uri de 1 saptamana.<br />
+Vom avea mai multe ceremonii : retro , daily, review si planning<br />
+Pentru o comunicare eficienta in echipa vom avea un server de discord si un grup de whatsapp.<br />
