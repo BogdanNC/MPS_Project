@@ -1,11 +1,11 @@
 # MPS_Project<br />
 
-Team Lead - Bogdan<br />
-Dev 1 - Maria<br />
-Dev 2 - Albert<br />
-Dev 3 - Claudiu<br />
-Project Manager - Cosmin<br />
-"Tester" - Alex<br />
+Team Lead - Bogdan Nicoara 344C3<br />
+Dev 1 - Maria Druga 342C2<br />
+Dev 2 - Albert Samoila 341C4<br />
+Dev 3 - Claudiu Chelcea 342C2<br />
+Project Manager - Cosmin Durla 341C2<br />
+"Tester" - Alex Dragoescu 343C2<br />
 
 Vom folosi Java ca limbaj de programare.<br />
 Metodologia de organizare va fi Agile.<br />
