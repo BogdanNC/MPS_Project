@@ -7,7 +7,7 @@ Dev 3 - Claudiu Chelcea 342C2<br />
 Project Manager - Cosmin Durla 341C2<br />
 "Tester" - Alex Dragoescu 343C2<br />
 
-Vom folosi Java ca limbaj de programare.<br />
+Vom folosi Python ca limbaj de programare.<br />
 Metodologia de organizare va fi Agile.<br />
 Ne vom structura munca pe sprint-uri de 1 saptamana.<br />
 Vom avea mai multe ceremonii : retro , daily, review si planning<br />
