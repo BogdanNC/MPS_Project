@@ -1,13 +1,27 @@
-import pandas as pd
+import csv
+from locale import atoi
 
+# Open file
+with open('GlobalTest.csv', newline='') as file_obj:
 
-def print_hi(name):
-    # Use a breakpoint in the code line below to debug your script.
-    print(f'Hi, {name}')  # Press Ctrl+F8 to toggle the breakpoint.
+    reader_obj = csv.reader(file_obj)
+    # Iterate over each row in the csv
+    # file using reader object
+    row = next(reader_obj)
+    print(row)
+    row = next(reader_obj)
+    print(row)
+    row = next(reader_obj)
+    sum = 0.0
+    totalNum = 0.0
+    for number in row[1:] :
+        sum = float(number) + sum
+        totalNum += 1
+        print(number)
 
+    print(sum/totalNum)
 
-# Press the green button in the gutter to run the script.
-if __name__ == '__main__':
-    print_hi('PyCharm')
+    #for row in reader_obj:
+    #    print(row)
 
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
+print("hello world")
