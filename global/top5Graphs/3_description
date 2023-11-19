@@ -1,0 +1,28 @@
+Fm Value: 57.9506
+Number of nodes: 26
+Node #1 has function sum of x^3 reduced at less than 1, value 0.539192 and child nodes: 5 4 
+Node #2 has function geometric mean of numbers, value -1 and child nodes: 4 6 7 5 
+Node #3 has function sum of sin(x) in absolute value reduced at less than 1, value -1 and child nodes: 4 
+Node #4 has function sum of numbers % 17 divided by 100, value 0.1 and child nodes: 9 11 10 8 
+Node #5 has function sum of sin(x) in absolute value reduced at less than 1, value 0.813416 and child nodes: 8 9 11 10 
+Node #6 has function mean of numbers, value -1 and child nodes: 8 
+Node #7 has function substraction of cos(x) in absolute value reduced at less than 1, value -1 and child nodes: 8 
+Node #8 has function sum of numbers % 17 divided by 100, value 0 and child nodes: 20 15 19 13 14 18 17 16 12 
+Node #9 has function sum of sin(x) in absolute value reduced at less than 1, value 0 and child nodes: 18 12 22 14 20 15 21 23 24 16 17 19 13 
+Node #10 has function sum of numbers |x - 0.33| reduced at less than 1, value 0.95 and child nodes: 16 23 19 14 12 20 22 18 25 13 15 17 24 21 26 
+Node #11 has function mean of numbers, value 0 and child nodes: 16 20 17 12 22 14 19 13 21 18 15 
+Node #12 has function , value 0 and child nodes: 
+Node #13 has function , value 0 and child nodes: 
+Node #14 has function , value 0 and child nodes: 
+Node #15 has function , value 0 and child nodes: 
+Node #16 has function , value 0 and child nodes: 
+Node #17 has function , value 0 and child nodes: 
+Node #18 has function , value 0 and child nodes: 
+Node #19 has function , value 0 and child nodes: 
+Node #20 has function , value 0 and child nodes: 
+Node #21 has function , value 0 and child nodes: 
+Node #22 has function , value 0 and child nodes: 
+Node #23 has function , value 0 and child nodes: 
+Node #24 has function , value 0 and child nodes: 
+Node #25 has function , value 0 and child nodes: 
+Node #26 has function , value 0 and child nodes: 

@@ -1,0 +1,39 @@
+Fm Value: 57.766
+Number of nodes: 37
+Node #1 has function sum of numbers |x - 0.33| reduced at less than 1, value 0.54869 and child nodes: 6 8 7 
+Node #2 has function geometric mean of numbers, value -1 and child nodes: 7 8 6 
+Node #3 has function sum of numbers % 17 divided by 100, value -1 and child nodes: 6 
+Node #4 has function sum of numbers % 17 divided by 100, value -1 and child nodes: 8 7 6 
+Node #5 has function substraction of cos(x) in absolute value reduced at less than 1, value -1 and child nodes: 6 
+Node #6 has function substraction of cos(x) in absolute value reduced at less than 1, value 0.54869 and child nodes: 9 10 
+Node #7 has function sum of numbers |x - 0.33| reduced at less than 1, value 0.32 and child nodes: 11 10 9 
+Node #8 has function sum of numbers |x - 0.33| reduced at less than 1, value 0.65 and child nodes: 12 10 11 9 
+Node #9 has function sum of numbers |x - 0.33| reduced at less than 1, value 0.99 and child nodes: 15 16 14 
+Node #10 has function sum of sin(x) in absolute value reduced at less than 1, value 0 and child nodes: 14 
+Node #11 has function max of numbers, value 0 and child nodes: 15 14 
+Node #12 has function geometric mean of numbers, value 0 and child nodes: 14 15 
+Node #13 has function min of numbers, value -1 and child nodes: 14 15 
+Node #14 has function max of numbers, value 0 and child nodes: 17 
+Node #15 has function sum of numbers % 17 divided by 100, value 0 and child nodes: 20 18 17 19 
+Node #16 has function sum of numbers % 17 divided by 100, value 0 and child nodes: 19 20 17 18 
+Node #17 has function min of numbers, value 0 and child nodes: 24 30 25 31 29 34 28 32 35 33 27 26 23 
+Node #18 has function sum of x^3 reduced at less than 1, value 0 and child nodes: 26 29 28 30 27 23 25 24 
+Node #19 has function sum of numbers % 17 divided by 100, value 0 and child nodes: 29 31 26 28 24 25 23 27 30 
+Node #20 has function sum of sin(x) in absolute value reduced at less than 1, value 0 and child nodes: 26 32 27 25 31 23 30 24 29 28 
+Node #21 has function geometric mean of numbers, value -1 and child nodes: 23 24 
+Node #22 has function sum of numbers |x - 0.33| reduced at less than 1, value -1 and child nodes: 25 31 28 26 27 23 29 30 24 
+Node #23 has function , value 0 and child nodes: 
+Node #24 has function , value 0 and child nodes: 
+Node #25 has function , value 0 and child nodes: 
+Node #26 has function , value 0 and child nodes: 
+Node #27 has function , value 0 and child nodes: 
+Node #28 has function , value 0 and child nodes: 
+Node #29 has function , value 0 and child nodes: 
+Node #30 has function , value 0 and child nodes: 
+Node #31 has function , value 0 and child nodes: 
+Node #32 has function , value 0 and child nodes: 
+Node #33 has function , value 0 and child nodes: 
+Node #34 has function , value 0 and child nodes: 
+Node #35 has function , value 0 and child nodes: 
+Node #36 has function , value 0.217647 and child nodes: 
+Node #37 has function , value 0.335294 and child nodes: 

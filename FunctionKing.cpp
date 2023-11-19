@@ -3,6 +3,126 @@
 #include <algorithm>
 #include "FunctionKing.h"
 
+// *************************
+/* ****** Constructor *** */
+// *************************
+FunctionKing::FunctionKing()
+{
+    // Map of function pointers
+    funcMap["function1"] = &FunctionKing::function1;
+    funcMap["function2"] = &FunctionKing::function2;
+    funcMap["function3"] = &FunctionKing::function3;
+    funcMap["function4"] = &FunctionKing::function4;
+    funcMap["function5"] = &FunctionKing::function5;
+    funcMap["function6"] = &FunctionKing::function6;
+    funcMap["function7"] = &FunctionKing::function7;
+    funcMap["function8"] = &FunctionKing::function8;
+    funcMap["function9"] = &FunctionKing::function9;
+    funcMap["function10"] = &FunctionKing::function10;
+    funcMap["function11"] = &FunctionKing::function11;
+    funcMap["function12"] = &FunctionKing::function12;
+    funcMap["function13"] = &FunctionKing::function13;
+    funcMap["function14"] = &FunctionKing::function14;
+    funcMap["function15"] = &FunctionKing::function15;
+    funcMap["function16"] = &FunctionKing::function16;
+    funcMap["function17"] = &FunctionKing::function17;
+    funcMap["function18"] = &FunctionKing::function18;
+    funcMap["function19"] = &FunctionKing::function19;
+    funcMap["function20"] = &FunctionKing::function20;
+    funcMap["function21"] = &FunctionKing::function21;
+    funcMap["function22"] = &FunctionKing::function22;
+    funcMap["function23"] = &FunctionKing::function23;
+    funcMap["function24"] = &FunctionKing::function24;
+    funcMap["function25"] = &FunctionKing::function25;
+    funcMap["function26"] = &FunctionKing::function26;
+    funcMap["function27"] = &FunctionKing::function27;
+    funcMap["function28"] = &FunctionKing::function28;
+    funcMap["function29"] = &FunctionKing::function29;
+    funcMap["function30"] = &FunctionKing::function30;
+    funcMap["function31"] = &FunctionKing::function31;
+    funcMap["function32"] = &FunctionKing::function32;
+    funcMap["function33"] = &FunctionKing::function33;
+    funcMap["function34"] = &FunctionKing::function34;
+    funcMap["function35"] = &FunctionKing::function35;
+    funcMap["function36"] = &FunctionKing::function36;
+    funcMap["function37"] = &FunctionKing::function37;
+    funcMap["function38"] = &FunctionKing::function38;
+    funcMap["function39"] = &FunctionKing::function39;
+    funcMap["function40"] = &FunctionKing::function40;
+    funcMap["function41"] = &FunctionKing::function41;
+    funcMap["function42"] = &FunctionKing::function42;
+    funcMap["function43"] = &FunctionKing::function43;
+    funcMap["function44"] = &FunctionKing::function44;
+    funcMap["function45"] = &FunctionKing::function45;
+    funcMap["function46"] = &FunctionKing::function46;
+    funcMap["function47"] = &FunctionKing::function47;
+    funcMap["function48"] = &FunctionKing::function48;
+    funcMap["function49"] = &FunctionKing::function49;
+    funcMap["function50"] = &FunctionKing::function50;
+    funcMap["function51"] = &FunctionKing::function51;
+    funcMap["function52"] = &FunctionKing::function52;
+    funcMap["function53"] = &FunctionKing::function53;
+    funcMap["function54"] = &FunctionKing::function54;
+    funcMap["function55"] = &FunctionKing::function55;
+    funcMap["function56"] = &FunctionKing::function56;
+    funcMap["function57"] = &FunctionKing::function57;
+    funcMap["function58"] = &FunctionKing::function58;
+    funcMap["function59"] = &FunctionKing::function59;
+    funcMap["function60"] = &FunctionKing::function60;
+    funcMap["function61"] = &FunctionKing::function61;
+    funcMap["function62"] = &FunctionKing::function62;
+    funcMap["function63"] = &FunctionKing::function63;
+    funcMap["function64"] = &FunctionKing::function64;
+    funcMap["function65"] = &FunctionKing::function65;
+    funcMap["function66"] = &FunctionKing::function66;
+    funcMap["function67"] = &FunctionKing::function67;
+    funcMap["function68"] = &FunctionKing::function68;
+    funcMap["function69"] = &FunctionKing::function69;
+    funcMap["function70"] = &FunctionKing::function70;
+    funcMap["function71"] = &FunctionKing::function71;
+    funcMap["function72"] = &FunctionKing::function72;
+    funcMap["function73"] = &FunctionKing::function73;
+    funcMap["function74"] = &FunctionKing::function74;
+    funcMap["function75"] = &FunctionKing::function75;
+    funcMap["function76"] = &FunctionKing::function76;
+    funcMap["function77"] = &FunctionKing::function77;
+    funcMap["function78"] = &FunctionKing::function78;
+    funcMap["function79"] = &FunctionKing::function79;
+    funcMap["function80"] = &FunctionKing::function80;
+    funcMap["function81"] = &FunctionKing::function81;
+    funcMap["function82"] = &FunctionKing::function82;
+    funcMap["function83"] = &FunctionKing::function83;
+    funcMap["function84"] = &FunctionKing::function84;
+    funcMap["function85"] = &FunctionKing::function85;
+    funcMap["function86"] = &FunctionKing::function86;
+    funcMap["function87"] = &FunctionKing::function87;
+    funcMap["function88"] = &FunctionKing::function88;
+    funcMap["function89"] = &FunctionKing::function89;
+    funcMap["function90"] = &FunctionKing::function90;
+    funcMap["function91"] = &FunctionKing::function91;
+    funcMap["function92"] = &FunctionKing::function92;
+    funcMap["function93"] = &FunctionKing::function93;
+    funcMap["function94"] = &FunctionKing::function94;
+    funcMap["function95"] = &FunctionKing::function95;
+    funcMap["function96"] = &FunctionKing::function96;
+    funcMap["function97"] = &FunctionKing::function97;
+    funcMap["function98"] = &FunctionKing::function98;
+    funcMap["function99"] = &FunctionKing::function99;
+    funcMap["function100"] = &FunctionKing::function100;
+}
+
+// *************************
+/* ******* Getter ******* */
+// *************************
+std::map<std::string, std::function<double(const std::vector<double>&)>> FunctionKing::_get_funcMap()
+{
+    return this->funcMap;
+}
+
+// *************************
+/* Mathematical functions */
+// *************************
+
 // Function 1: Calculate the sum of the numbers and return the fractional part
 double FunctionKing::function1(const std::vector<double>& numbers) {
     double sum = 0;

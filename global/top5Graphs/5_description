@@ -1,0 +1,33 @@
+Fm Value: 57.6187
+Number of nodes: 31
+Node #1 has function sum of x^3 reduced at less than 1, value 0.397089 and child nodes: 4 3 
+Node #2 has function mean of numbers, value -1 and child nodes: 5 4 3 
+Node #3 has function max of numbers, value 0.884736 and child nodes: 8 7 
+Node #4 has function substraction of cos(x) in absolute value reduced at less than 1, value 0.889826 and child nodes: 9 10 7 8 
+Node #5 has function geometric mean of numbers, value -1 and child nodes: 7 8 
+Node #6 has function min of numbers, value -1 and child nodes: 8 9 7 
+Node #7 has function sum of x^3 reduced at less than 1, value 0.884736 and child nodes: 11 12 13 
+Node #8 has function min of numbers, value 0 and child nodes: 11 
+Node #9 has function max of numbers, value 0.96 and child nodes: 12 11 14 13 
+Node #10 has function sum of sin(x) in absolute value reduced at less than 1, value 0.819192 and child nodes: 13 14 11 12 
+Node #11 has function max of numbers, value 0 and child nodes: 23 17 21 19 20 18 22 
+Node #12 has function min of numbers, value 0 and child nodes: 20 21 18 17 19 
+Node #13 has function sum of numbers |x - 0.33| reduced at less than 1, value 0.96 and child nodes: 19 24 26 21 25 17 20 27 23 22 18 28 
+Node #14 has function geometric mean of numbers, value 0 and child nodes: 20 21 19 17 18 23 22 
+Node #15 has function sum of numbers % 17 divided by 100, value -1 and child nodes: 17 
+Node #16 has function sum of numbers |x - 0.33| reduced at less than 1, value -1 and child nodes: 25 20 24 27 26 17 19 23 18 21 22 
+Node #17 has function , value 0 and child nodes: 
+Node #18 has function , value 0 and child nodes: 
+Node #19 has function , value 0 and child nodes: 
+Node #20 has function , value 0 and child nodes: 
+Node #21 has function , value 0 and child nodes: 
+Node #22 has function , value 0 and child nodes: 
+Node #23 has function , value 0 and child nodes: 
+Node #24 has function , value 0 and child nodes: 
+Node #25 has function , value 0 and child nodes: 
+Node #26 has function , value 0 and child nodes: 
+Node #27 has function , value 0 and child nodes: 
+Node #28 has function , value 0 and child nodes: 
+Node #29 has function , value 0.362745 and child nodes: 
+Node #30 has function , value 0.217647 and child nodes: 
+Node #31 has function , value 0.335294 and child nodes: 

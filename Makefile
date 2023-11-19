@@ -10,35 +10,41 @@ EXTENSION=csv
 # Compilation Flags
 CXXFLAGS = -fopenmp -O3 -march=native
 
+# Object files
+OBJS = $(FILE_NAME).o FunctionKing.o
+
 # *******************************************
 # ************ FILE GENERATION **************
 # *******************************************
-$(FILE_NAME): $(FILE_NAME).o
-		g++ $(CXXFLAGS) $(FILE_NAME).o -o $(FILE_NAME)
+$(FILE_NAME): $(OBJS)
+	g++ $(CXXFLAGS) $(OBJS) -o $(FILE_NAME)
 
-$(FILE_NAME).o: $(FILE_NAME).cpp
-		g++ $(CXXFLAGS) -c $(FILE_NAME).cpp
+$(FILE_NAME).o: $(FILE_NAME).cpp FunctionKing.h
+	g++ $(CXXFLAGS) -c $(FILE_NAME).cpp
+
+FunctionKing.o: FunctionKing.cpp FunctionKing.h
+	g++ $(CXXFLAGS) -c FunctionKing.cpp
 
 # *******************************************
 # ************ RUN **************************
 # *******************************************
 run:
-		./$(FILE_NAME) $1 $(FOLDER)/$(FILE1).$(EXTENSION) $(FOLDER)/$(FILE2).$(EXTENSION)
+	./$(FILE_NAME) $1 $(FOLDER)/$(FILE1).$(EXTENSION) $(FOLDER)/$(FILE2).$(EXTENSION)
 
 default_run:
-		./$(FILE_NAME) 100 $(FOLDER)/$(FILE1).$(EXTENSION) $(FOLDER)/$(FILE2).$(EXTENSION)
+	./$(FILE_NAME) 100 $(FOLDER)/$(FILE1).$(EXTENSION) $(FOLDER)/$(FILE2).$(EXTENSION)
 
 # *******************************************
 # *********** CLEAN *************************
 # *******************************************
 clean:
-		rm $(FILE_NAME).o
-		rm $(FILE_NAME)
+	rm -f $(OBJS) $(FILE_NAME)
 
 # *******************************************
 # ********** TEST ***************************
 # *******************************************
-
-############ FUNCTION KING ##################
 test_function_king:
-	g++ -o $(FILE_NAME) FunctionKing.cpp TestFunctionKing.cpp
+	g++ -o testFunctionKing FunctionKing.cpp TestFunctionKing.cpp $(CXXFLAGS)
+
+# Mark targets as phony
+.PHONY: run default_run clean test_function_king
