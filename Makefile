@@ -41,4 +41,4 @@ clean:
 
 ############ FUNCTION KING ##################
 test_function_king:
-	g++ -o MyProgram FunctionKing.cpp TestFunctionKing.cpp
+	g++ -o $(FILE_NAME) FunctionKing.cpp TestFunctionKing.cpp
