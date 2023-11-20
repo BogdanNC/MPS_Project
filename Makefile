@@ -35,8 +35,8 @@ $(FILE_NAME).o: $(FILE_NAME).cpp
 run_10:
 	./$(FILE_NAME) 10 $(FOLDER)/$(FILE1).$(EXTENSION) $(FOLDER)/$(FILE2).$(EXTENSION)
 
-run_100:
-	./$(FILE_NAME) 100 $(FOLDER)/$(FILE1).$(EXTENSION) $(FOLDER)/$(FILE2).$(EXTENSION)
+run_25:
+	./$(FILE_NAME) 25 $(FOLDER)/$(FILE1).$(EXTENSION) $(FOLDER)/$(FILE2).$(EXTENSION)
 
 # *******************************************
 # *********** CLEAN *************************

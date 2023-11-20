@@ -882,31 +882,27 @@ bool fileExists(const std::string& filename) {
     return file.good();
 }
 
-void loadTreeFromFile(const std::string& filename, tree& current_tree) {
-    std::ifstream fin(filename);
+void loadTreeFromFile(const string& filename, tree& current_tree) {
+    ifstream fin(filename);
     if (!fin) {
-        std::cerr << "Error opening file: " << filename << std::endl;
+        cerr << "Error opening file: " << filename << endl;
         return;
     }
 
-    fin >> current_tree.fm_value;
-    fin >> current_tree.nr_nodes;
-    current_tree.nodes.reserve(current_tree.nr_nodes);
+    fin >> current_tree.fm_value >> current_tree.nr_nodes;
+    current_tree.nodes.resize(current_tree.nr_nodes);
 
-    for (int j = 0; j < current_tree.nr_nodes; ++j) {
-        node current_node;
-        fin >> current_node.node_id >> current_node.function_id >> current_node.value;
-        int childs_nr;
-        fin >> childs_nr;
-        current_node.child_nodes_id.reserve(childs_nr);
-
-        for (int t = 0; t < childs_nr; ++t) {
-            int child_id;
+    auto readNode = [&fin](node& n) {
+        fin >> n.node_id >> n.function_id >> n.value;
+        int child_count;
+        fin >> child_count;
+        n.child_nodes_id.resize(child_count);
+        for (int& child_id : n.child_nodes_id) {
             fin >> child_id;
-            current_node.child_nodes_id.push_back(child_id);
         }
-        current_tree.nodes.push_back(current_node);
-    }
+    };
+
+    for_each(current_tree.nodes.begin(), current_tree.nodes.end(), readNode);
 }
 
 void load_trees() {
@@ -941,58 +937,55 @@ void load_trees() {
     std::cout << std::endl<< "Finished loading trees: " << std::endl;
 }
 
-void store_tree_explicit(int i, tree tree) {
-    std::ofstream fout(std::string(TREES_TO_LOAD_FOLDER) + "tree_to_load_" + std::to_string(i) + "_explicit");
-    std::ofstream fout1(std::string(TREES_TO_LOAD_FOLDER) + "f_measure_tree_" + std::to_string(i));
-    fout1 << "Fm Value: " << tree.fm_value << "\n";
-    fout1 << "Number of nodes: " << tree.nr_nodes << "\n\n";
-    fout << "Fmeasure: " << tree.fm_value << "\n";
-    fout << "Num. nodes: " << tree.nr_nodes << "\n\n";
-    for (auto current_node : tree.nodes) {
-        fout << "Node id: " << current_node.node_id << "\n" << "Node function: " << current_node.function_id << "\n" << "Node value: " << current_node.value << '\n';
-        fout << "Node childs: " << current_node.child_nodes_id.size() << "\nChilds: ";
+void store_tree(int index, const tree& t) {
+    stringstream tree_filename, fm_filename;
+    tree_filename << TREES_TO_LOAD_FOLDER << "tree_to_load_" << index;
+    fm_filename << TREES_TO_LOAD_FOLDER << "f_measure_tree_" << index;
 
-        if(current_node.child_nodes_id.size() == 0) {
-            fout << "I AM A LEAF!" << std::endl;
-            fout << "\n";
-        } else {
-            for (auto c : current_node.child_nodes_id) {
-                fout << c << " ";
-            }
-            fout << "\n";
-            fout << "\n";
-        }
+    ofstream tree_file(tree_filename.str()), fm_file(fm_filename.str());
+    fm_file << "Fm Value: " << t.fm_value << '\n'
+            << "Number of nodes: " << t.nr_nodes << '\n';
+
+    tree_file << t.fm_value << " " << t.nr_nodes << " ";
+    for (const auto& node : t.nodes) {
+        tree_file << node.node_id << " " << node.function_id << " " << node.value << " "
+                  << node.child_nodes_id.size() << " ";
+        copy(node.child_nodes_id.begin(), node.child_nodes_id.end(), ostream_iterator<int>(tree_file, " "));
+        tree_file << '\n';
     }
 }
 
-void store_tree(int i, tree tree) {
-    ofstream fout(std::string(TREES_TO_LOAD_FOLDER) + "tree_to_load_" + std::to_string(i));
-    ofstream fout1(std::string(TREES_TO_LOAD_FOLDER) + "f_measure_tree_" + std::to_string(i));
-    fout1 << "Fm Value: " << tree.fm_value << '\n';
-    fout << tree.fm_value << " ";
-    fout1 << "Number of nodes: " << tree.nr_nodes << '\n';
-    fout << tree.nr_nodes << " ";
-    for (auto current_node : tree.nodes) {
-        fout << current_node.node_id << " " << current_node.function_id << " " << current_node.value << '\n';
-        fout << current_node.child_nodes_id.size() << " ";
-        for (auto c : current_node.child_nodes_id) {
-            fout << c << " ";
-            fout1 << c << " ";
+void store_tree_explicit(int index, const tree& t) {
+    stringstream tree_filename;
+    tree_filename << TREES_TO_LOAD_FOLDER << "tree_to_load_" << index << "_explicit";
+
+    ofstream tree_file(tree_filename.str());
+    tree_file << "Fmeasure: " << t.fm_value << "\n"
+              << "Num. nodes: " << t.nr_nodes << "\n\n";
+
+    for (const auto& node : t.nodes) {
+        tree_file << "Node id: " << node.node_id << "\n"
+                  << "Node function: " << node.function_id << "\n"
+                  << "Node value: " << node.value << '\n'
+                  << "Node childs: " << node.child_nodes_id.size() << "\nChilds: ";
+
+        if (node.child_nodes_id.empty()) {
+            tree_file << "I AM A LEAF!" << '\n';
+        } else {
+            copy(node.child_nodes_id.begin(), node.child_nodes_id.end(), ostream_iterator<int>(tree_file, " "));
+            tree_file << '\n';
         }
-        fout << '\n';
-        fout1 << '\n';
+        tree_file << '\n';
     }
 }
 
 void tree_build(int id, map<int, node> &nodes) {
-    for (auto x : nodes[id].child_nodes_id) {
-        tree_build(x, nodes);
-    }
+    std::for_each(nodes[id].child_nodes_id.begin(), nodes[id].child_nodes_id.end(), 
+              [&](int childId) { tree_build(childId, nodes); });
 
     vector<double> child_values;
-    for (auto c : nodes[id].child_nodes_id) {
-        child_values.push_back(nodes[c].value);
-    }
+    std::transform(nodes[id].child_nodes_id.begin(), nodes[id].child_nodes_id.end(), std::back_inserter(child_values), 
+               [&](int childId) { return nodes[childId].value; });
 
     switch(nodes[id].function_id) {
     case 1:
