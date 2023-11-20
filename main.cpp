@@ -1305,100 +1305,91 @@ void tree_build(int id, map<int, node> &nodes) {
 }
 
 vector<int> randomPermutation(int n) {
-    vector<int> permutation;
-    for (int i = 1; i <= n; ++i) {
-        permutation.push_back(i);
-    }
-
-    random_device rd;
-    mt19937 gen(rd());
-
-    shuffle(permutation.begin(), permutation.end(), gen);
-
+    vector<int> permutation(n);
+    iota(permutation.begin(), permutation.end(), 1);
+    shuffle(permutation.begin(), permutation.end(), mt19937(random_device()()));
     return permutation;
 }
 
-void initializeNonLeafNodes(map<int, node>& nodes, const vector<vector<int>>& tree_on_levels) {
+int getRandomInRange(int min, int max) {
+    static std::random_device rd;
+    static std::mt19937 gen(rd());
+    std::uniform_int_distribution<> dist(min, max);
+    return dist(gen);
+}
+
+void initializeTreeLevels(vector<vector<int>>& tree_on_levels, int tree_levels, const vector<vector<string>>& data, tree& myTree) {
+    int current_id = 1;
+    for (int i = 1; i <= tree_levels; ++i) {
+        int nr_on_level = (i != tree_levels) ? getRandomInRange(MIN_NODES_ON_LEVEL, MAX_NODES_ON_LEVEL) : data[0].size();
+        vector<int> id_nodes(nr_on_level);
+        iota(begin(id_nodes), end(id_nodes), current_id);
+        current_id += nr_on_level;
+        tree_on_levels.push_back(move(id_nodes));
+        myTree.nr_nodes += nr_on_level; // Update nr_nodes here
+    }
+}
+
+void initializeNodes(map<int, node>& nodes, const vector<vector<int>>& tree_on_levels) {
     for (int i = 0; i < (int)tree_on_levels.size() - 1; ++i) {
         for (auto id : tree_on_levels[i]) {
-            node new_node;
-            new_node.node_id = id;
-            new_node.value = -1; // Initialize non-leaf nodes with -1
-            new_node.function_id = rng() % NR_OF_FUNCTIONS + 1;
-            nodes[id] = new_node;
+            nodes[id] = {id, static_cast<int>(rng() % NR_OF_FUNCTIONS) + 1, -1.0, {}};
         }
     }
 }
 
-void connectNodes(map<int, node>& nodes, const vector<vector<int>>& tree_on_levels) {
-    for (int i = 0; i < (int)tree_on_levels.size() - 1; ++i) {
-        int first_id_on_next_level = tree_on_levels[i + 1][0];
-        for (auto &n : tree_on_levels[i]) {
-            int nr_childs = rng() % tree_on_levels[i + 1].size() + 1;
-            vector<int> permutation = randomPermutation(nr_childs);
-            for (auto x : permutation) {
-                nodes[n].child_nodes_id.push_back(first_id_on_next_level + x - 1);
-            }
+void connectTreeNodes(map<int, node>& nodes, const vector<vector<int>>& tree_on_levels) {
+    for (int level = 0; level < (int)tree_on_levels.size() - 1; ++level) {
+        int firstIdOnNextLevel = tree_on_levels[level + 1].front();
+        for (auto nodeId : tree_on_levels[level]) {
+            auto permutation = randomPermutation(tree_on_levels[level + 1].size());
+            transform(permutation.begin(), permutation.end(), back_inserter(nodes[nodeId].child_nodes_id),
+                      [firstIdOnNextLevel](int x) { return firstIdOnNextLevel + x - 1; });
         }
     }
 }
 
-void setLeafNodeValues(map<int, node>& nodes, const vector<vector<string>>& data, const vector<int>& leaf_node_ids) {
-    for (int i = 0; i < (int)data.size(); ++i) {
+void setLeafNodesValues(map<int, node>& nodes, const vector<vector<string>>& data, const vector<int>& leaf_node_ids) {
+    for (size_t i = 0; i < data.size(); ++i) {
         int p = 0;
         for (auto id : leaf_node_ids) {
-            nodes[id].value = std::stod(data[i][p++]); // Set leaf node value from CSV
+            nodes[id].value = stod(data[i][p++]);
             nodes[id].function_id = -1;
         }
     }
 }
 
+void buildTree(tree& myTree, map<int, node>& nodes, const vector<vector<int>>& tree_on_levels, const vector<vector<string>>& data) {
+    initializeNodes(nodes, tree_on_levels);
+    connectTreeNodes(nodes, tree_on_levels);
+    setLeafNodesValues(nodes, data, tree_on_levels.back());
+}
+
+double calculateFinalFm(map<int, node>& nodes, const vector<vector<string>>& fm_data) {
+    double final_fm = 0;
+    for (auto& row : fm_data) {
+        tree_build(1, nodes);  // Assuming tree_build is defined elsewhere
+        double res = nodes.at(1).value;
+        final_fm += stod(row[static_cast<size_t>(255 * res)]);
+    }
+    return final_fm / fm_data.size();
+}
+
 void generate_tree(const vector<vector<string>>& data, const vector<vector<string>>& fm_data, int tree_id) {
     map<int, node> nodes;
-    int min_tree_levels = MIN_TREE_LEVELS;  // Adjust the minimum tree depth as needed
-    int max_tree_levels = MAX_TREE_LEVELS;  // Adjust the maximum tree depth as needed
-    int tree_levels = rng() % (max_tree_levels - min_tree_levels + 1) + min_tree_levels;
+    int tree_levels = getRandomInRange(MIN_TREE_LEVELS, MAX_TREE_LEVELS);
     vector<vector<int>> tree_on_levels;
-    tree tree;
-    tree.nr_nodes = 0;
-    int current_id = 1;
+    tree myTree;
+    myTree.nr_nodes = 0;
 
-    for (int i = 1; i <= tree_levels; ++i) {
-        int min_nr_on_level = MIN_NODES_ON_LEVEL;  // Minimum nodes on each level
-        int max_nr_on_level = MAX_NODES_ON_LEVEL;  // Maximum nodes on each level
-        int nr_on_level = rng() % (max_nr_on_level - min_nr_on_level + 1) + min_nr_on_level;
+    initializeTreeLevels(tree_on_levels, tree_levels, data, myTree);
+    buildTree(myTree, nodes, tree_on_levels, data);
 
-        if (i == tree_levels) {
-            nr_on_level = data[0].size();
-        }
+    myTree.fm_value = calculateFinalFm(nodes, fm_data);
+    transform(nodes.begin(), nodes.end(), back_inserter(myTree.nodes),
+              [](const pair<int, node>& pair) { return pair.second; });
 
-        vector<int> id_nodes;
-        for (int j = 1; j <= nr_on_level; ++j) {
-            id_nodes.push_back(current_id++);
-        }
-        tree_on_levels.push_back(id_nodes);
-        tree.nr_nodes += nr_on_level;
-    }
-
-    initializeNonLeafNodes(nodes, tree_on_levels);
-    connectNodes(nodes, tree_on_levels);
-
-    vector<int> leaf_node_ids = tree_on_levels.back();
-    setLeafNodeValues(nodes, data, leaf_node_ids);
-
-    double final_fm = 0;
-    for (int i = 0; i < (int)data.size(); ++i) {
-        tree_build(1, nodes);
-        double res = nodes[1].value;
-        double current_fm = std::stod(fm_data[i][255 * res]);
-        final_fm += current_fm;
-    }
-    final_fm /= data.size();
-    tree.fm_value = final_fm;
-    for (int i = 1; i <= tree.nr_nodes; ++i) {
-        tree.nodes.push_back(nodes[i]);
-    }
-    bestTrees.push_back(tree);
+    bestTrees.push_back(myTree);
 }
 
 void parseArguments(int argc, char** argv, int& nrTrees, std::string& file1, std::string& file2) {
