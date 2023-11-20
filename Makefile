@@ -38,14 +38,15 @@ run_10:
 run_100:
 	./$(FILE_NAME) 100 $(FOLDER)/$(FILE1).$(EXTENSION) $(FOLDER)/$(FILE2).$(EXTENSION)
 
-run_1000:
-	./$(FILE_NAME) 1000 $(FOLDER)/$(FILE1).$(EXTENSION) $(FOLDER)/$(FILE2).$(EXTENSION)
-
 # *******************************************
 # *********** CLEAN *************************
 # *******************************************
 clean:
 	rm -f $(OBJS) $(FILE_NAME)
+
+clean_output:
+	rm global/top5Graphs/f_measure*
+	rm global/top5Graphs/tree_to*
 
 # *******************************************
 # ********** TEST ***************************

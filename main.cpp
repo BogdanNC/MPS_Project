@@ -1,18 +1,32 @@
 #include <bits/stdc++.h>
 #include <omp.h>
-
 using namespace std;
 
-// ./o_global 5 global/GlobalTest.csv global/LUTTest.csv
-
-mt19937 rng((unsigned int) chrono::steady_clock::now().time_since_epoch().count());
 #define NUMBER_OF_ARGS 4
+#define MIN_TREE_LEVELS 3
 #define MAX_TREE_LEVELS 6
-#define MAX_NODES_ON_LEVEL 6
-#define NR_OF_FUNCTIONS 10
-#define NR_BEST_TREES 5
-#define BEST_TREES_PATH "global/top5Graphs/"
+#define MAX_NODES_ON_LEVEL 8
+#define NR_OF_FUNCTIONS 100
+#define NR_BEST_TREES 7
+#define TREES_TO_LOAD "global/top5Graphs/"
 #define CSV_EXTENSION ".csv"
+#define GENERATE_UNIQUE 0
+mt19937 rng((unsigned int) chrono::steady_clock::now().time_since_epoch().count());
+// Thread-local random number generators
+std::vector<std::mt19937> rngs;
+
+void initThreadLocalRngs(int numThreads) {
+    rngs.resize(numThreads);
+    for (int i = 0; i < numThreads; ++i) {
+        std::random_device rd;
+        rngs[i].seed(rd() ^ (i + 1));
+    }
+}
+
+int getRandomNumber(int threadId, int min, int max) {
+    std::uniform_int_distribution<int> dist(min, max);
+    return dist(rngs[threadId]);
+}
 
 // Optimization
 double result = 0;
@@ -871,8 +885,6 @@ struct node {
     double value;
     vector<int> child_nodes_id;
 };
-map<int, string> func_description;
-
 
 struct tree {
     double fm_value;
@@ -882,63 +894,87 @@ struct tree {
 
 vector<tree> bestTrees;
 
-void load_trees() {
-    for (int i = 1; i <= NR_BEST_TREES; ++i) {
-        ifstream fin(BEST_TREES_PATH + to_string(i) + "_structure");
-        tree current_tree;
-        fin >> current_tree.fm_value;
-        fin >> current_tree.nr_nodes;
-        for (int j = 0; j < current_tree.nr_nodes; ++j) {
-            node current_node;
-            fin >> current_node.node_id >> current_node.function_id >> current_node.value;
-            int childs_nr;
-            fin >> childs_nr;
-            for (int t = 0; t < childs_nr; ++t) {
-                int child_id;
-                fin >> child_id;
-                current_node.child_nodes_id.push_back(child_id);
-            }
-            current_tree.nodes.push_back(current_node);
+bool fileExists(const std::string& filename) {
+    std::ifstream file(filename);
+    return file.good();
+}
+
+void loadTreeFromFile(const std::string& filename, tree& current_tree) {
+    std::ifstream fin(filename);
+    if (!fin) {
+        std::cerr << "Error opening file: " << filename << std::endl;
+        return;
+    }
+
+    fin >> current_tree.fm_value;
+    fin >> current_tree.nr_nodes;
+    current_tree.nodes.reserve(current_tree.nr_nodes); // Reserve memory to reduce reallocations
+
+    for (int j = 0; j < current_tree.nr_nodes; ++j) {
+        node current_node;
+        fin >> current_node.node_id >> current_node.function_id >> current_node.value;
+        int childs_nr;
+        fin >> childs_nr;
+        current_node.child_nodes_id.reserve(childs_nr); // Reserve memory
+
+        for (int t = 0; t < childs_nr; ++t) {
+            int child_id;
+            fin >> child_id;
+            current_node.child_nodes_id.push_back(child_id);
         }
+        current_tree.nodes.push_back(current_node);
+    }
+}
+
+void load_trees() {
+    bool filesFound = true;
+
+    for (int i = 1; i <= NR_BEST_TREES; ++i) {
+        std::string filename = std::string(TREES_TO_LOAD) + "tree_to_load_" + std::to_string(i);
+        if (!fileExists(filename)) {
+            filesFound = false;
+            break;
+        }
+    }
+
+    if (!filesFound) {
+        std::cout << "Files not found. Tree build from scratch!" << std::endl;
+        return;
+    }
+
+    std::cout << "Files found! Reusing previous files in building the trees" << std::endl;
+
+    for (int i = 1; i <= NR_BEST_TREES; ++i) {
+        std::string filename = std::string(TREES_TO_LOAD) + "tree_to_load_" + std::to_string(i);
+        tree current_tree;
+        loadTreeFromFile(filename, current_tree);
         bestTrees.push_back(current_tree);
     }
 }
 
 void store_tree(int i, tree tree) {
-    ofstream fout(BEST_TREES_PATH + to_string(i) + "_structure");
-    ofstream fout1(BEST_TREES_PATH + to_string(i) + "_description");
-    fout1 << "Fm Value: " << tree.fm_value << '\n';
-    fout << tree.fm_value << " ";
-    fout1 << "Number of nodes: " << tree.nr_nodes << '\n';
-    fout << tree.nr_nodes << " ";
+    ofstream fout(std::string(TREES_TO_LOAD) + "tree_to_load_" + to_string(i));
+    ofstream fout1(std::string(TREES_TO_LOAD) + "f_measure_tree_" + std::to_string(i));
+    fout1 << "Fm Value: " << tree.fm_value << "\n";
+    fout1 << "Number of nodes: " << tree.nr_nodes << "\n\n";
+    fout << "Fmeasure: " << tree.fm_value << "\n";
+    fout << "Num. nodes: " << tree.nr_nodes << "\n\n";
     for (auto current_node : tree.nodes) {
-        fout1 << "Node #" << current_node.node_id << " has function " << func_description[current_node.function_id] << ", value " << current_node.value << " and child nodes: ";
-        fout << current_node.node_id << " " << current_node.function_id << " " << current_node.value << '\n';
-        fout << current_node.child_nodes_id.size() << " ";
-        for (auto c : current_node.child_nodes_id) {
-            fout << c << " ";
-            fout1 << c << " ";
+        fout << "Node id: " << current_node.node_id << "\n" << "Node function: " << current_node.function_id << "\n" << "Node value: " << current_node.value << '\n';
+        fout << "Node childs: " << current_node.child_nodes_id.size() << "\nChilds: ";
+
+        if(current_node.child_nodes_id.size() == 0) {
+            fout << "I AM A LEAF!" << std::endl;
+            fout << "\n";
+        } else {
+            for (auto c : current_node.child_nodes_id) {
+                fout << c << " ";
+            }
+            fout << "\n";
+            fout << "\n";
         }
-        fout << '\n';
-        fout1 << '\n';
     }
 }
-
-
-
-void log_data(int node_id, map<int, node> nodes) {
-    cout << "Node Id: " << node_id << '\n';
-    cout << "Function aplied: " << func_description[nodes[node_id].function_id] << '\n';
-    cout << "Value: " << nodes[node_id].value << '\n';
-    cout << "Child nodes id's: ";
-    for (auto x : nodes[node_id].child_nodes_id) {
-        cout << x << " ";
-    } 
-
-    cout << "\n\n";
-
-}
-
 void tree_build(int id, map<int, node> &nodes) {
     for (auto x : nodes[id].child_nodes_id) {
         tree_build(x, nodes);
@@ -1273,19 +1309,25 @@ vector<int> randomPermutation(int n) {
     return permutation;
 }
 
-void generate_tree(vector<vector<string>> data, vector<vector<string>> fm_data, int tree_id) {
-
+void generate_tree(const std::vector<std::vector<std::string>>& data, const std::vector<std::vector<std::string>>& fm_data, int tree_id) {
     map<int, node> nodes;
-    int tree_levels = rng() % MAX_TREE_LEVELS + 1;
+    int min_tree_levels = 3;  // Adjust the minimum tree depth as needed
+    int max_tree_levels = 5;  // Adjust the maximum tree depth as needed
+    int tree_levels = rng() % (max_tree_levels - min_tree_levels + 1) + min_tree_levels;
     vector<vector<int>> tree_on_levels;
     tree tree;
     tree.nr_nodes = 0;
     int current_id = 1;
+
     for (int i = 1; i <= tree_levels; ++i) {
-        int nr_on_level = rng() % MAX_NODES_ON_LEVEL + 1;
+        int min_nr_on_level = 2;  // Minimum nodes on each level
+        int max_nr_on_level = 5;  // Maximum nodes on each level
+        int nr_on_level = rng() % (max_nr_on_level - min_nr_on_level + 1) + min_nr_on_level;
+
         if (i == tree_levels) {
             nr_on_level = data[0].size();
         }
+
         vector<int> id_nodes;
         for (int j = 1; j <= nr_on_level; ++j) {
             id_nodes.push_back(current_id++);
@@ -1294,19 +1336,19 @@ void generate_tree(vector<vector<string>> data, vector<vector<string>> fm_data, 
         tree.nr_nodes += nr_on_level;
     }
 
-    for (int i = 0; i < (int) tree_on_levels.size() - 1; ++i) {
+    for (int i = 0; i < (int)tree_on_levels.size() - 1; ++i) {
         for (auto id : tree_on_levels[i]) {
             node new_node;
             new_node.node_id = id;
-            new_node.value = -1;
+            new_node.value = -1; // Initialize non-leaf nodes with -1
             new_node.function_id = rng() % NR_OF_FUNCTIONS + 1;
             nodes[id] = new_node;
         }
     }
 
-    for (int i = 0; i < (int) tree_on_levels.size() - 1; ++i) {
+    for (int i = 0; i < (int)tree_on_levels.size() - 1; ++i) {
         int first_id_on_next_level = tree_on_levels[i + 1][0];
-        for(auto &n : tree_on_levels[i]) {
+        for (auto &n : tree_on_levels[i]) {
             int nr_childs = rng() % tree_on_levels[i + 1].size() + 1;
             vector<int> permutation = randomPermutation(nr_childs);
             for (auto x : permutation) {
@@ -1316,18 +1358,18 @@ void generate_tree(vector<vector<string>> data, vector<vector<string>> fm_data, 
     }
 
     double final_fm = 0;
-    for (int i = 0; i < (int) data.size(); ++i) {
+    for (int i = 0; i < (int)data.size(); ++i) {
         int p = 0;
         for (auto id : tree_on_levels.back()) {
             node new_node;
             new_node.node_id = id;
-            new_node.value = stod(data[i][p++]);
+            new_node.value = std::stod(data[i][p++]); // Set leaf node value from CSV
             new_node.function_id = -1;
             nodes[id] = new_node;
         }
         tree_build(1, nodes);
         double res = nodes[1].value;
-        double current_fm = stod(fm_data[i][255 * res]);
+        double current_fm = std::stod(fm_data[i][255 * res]);
         final_fm += current_fm;
     }
     final_fm /= data.size();
@@ -1338,98 +1380,75 @@ void generate_tree(vector<vector<string>> data, vector<vector<string>> fm_data, 
     bestTrees.push_back(tree);
 }
 
-bool cmp(const tree &a, const tree &b) {
-    return a.fm_value > b.fm_value;
+void parseArguments(int argc, char** argv, int& nrTrees, std::string& file1, std::string& file2) {
+    if (argc != NUMBER_OF_ARGS) {
+        std::cerr << "Wrong usage: different number of arguments!\n";
+        std::cerr << "Correct usage: ./o_global nrTrees file1.csv file2.csv\n";
+        exit(1);
+    }
+    nrTrees = std::atoi(argv[1]);
+    file1 = argv[2];
+    file2 = argv[3];
+    if (file1.find(CSV_EXTENSION) == std::string::npos || file2.find(CSV_EXTENSION) == std::string::npos) {
+        std::cerr << "Wrong file extensions!\n";
+        std::cerr << "Correct usage: ./o_global nrTrees file1.csv file2.csv\n";
+        exit(1);
+    }
 }
 
-int main(int argc, char **argv) {
-
-    if (argc != NUMBER_OF_ARGS) {
-        cout << "Wrong ussage: different number of arguments!\n";
-        cout << "Correct ussage: ./o_global file1.csv file2.csv";
-    }
-    int nrTrees = atoi(argv[1]);
-    string file1 = argv[2];
-    string file2 = argv[3];
-    if (file1.find(CSV_EXTENSION) == string::npos || file2.find(CSV_EXTENSION) == string::npos) {
-        cout << "Wrong file extensions!\n";
-        cout << "Correct ussage: ./o_global nrTrees file1.csv file2.csv";
+std::vector<std::vector<std::string>> readCsvFile(const std::string& filename) {
+    std::ifstream file(filename);
+    if (!file) {
+        std::cerr << "Error opening file: " << filename << "\n";
+        exit(1);
     }
 
-    ifstream image_file(file1);
-    ifstream fm_file(file2);
+    std::vector<std::vector<std::string>> data;
+    std::string line;
+    getline(file, line); // Skip header line
 
-    string line;
-    vector<string> headers;
-    vector<vector<string>> data;
-
-    if (getline(image_file, line)) {
-        stringstream ss(line);
-        string header;
-        while (getline(ss, header, ',')) {
-            headers.push_back(header);
-        }
-    }
-
-    while (getline(image_file, line)) {
-        vector<string> row;
-        stringstream ss(line);
-        string value;
+    while (getline(file, line)) {
+        std::stringstream ss(line);
+        std::vector<std::string> row;
+        std::string value;
         while (getline(ss, value, ',')) {
             row.push_back(value);
         }
         data.push_back(row);
     }
 
-    image_file.close();
+    return data;
+}
 
-    vector<string> fm_headers;
-    vector<vector<string>> fm_data;
-    if (getline(fm_file, line)) {
-        stringstream ss(line);
-        string header;
-        while (getline(ss, header, ',')) {
-            fm_headers.push_back(header);
-        }
-    }
-
-    while (getline(fm_file, line)) {
-        vector<string> row;
-        stringstream ss(line);
-        string value;
-        while (getline(ss, value, ',')) {
-            row.push_back(value);
-        }
-        fm_data.push_back(row);
-    }
-
-    fm_file.close();
-
+void generateAndStoreTrees(int nrTrees, const std::vector<std::vector<std::string>>& data, const std::vector<std::vector<std::string>>& fm_data) {
     //load_trees();
-    func_description[1] = "mean of numbers";
-    func_description[2] = "geometric mean of numbers";
-    func_description[3] = "sum of numbers % 17 divided by 100";
-    func_description[4] = "max of numbers";
-    func_description[5] = "min of numbers";
-    func_description[6] = "sum of numbers |x - 0.33| reduced at less than 1";
-    func_description[7] = "sum of sin(x) in absolute value reduced at less than 1";
-    func_description[8] = "substraction of cos(x) in absolute value reduced at less than 1";
-    func_description[9] = "sum of x^3 reduced at less than 1";
-    func_description[10] = "sum of sqrt(abs(x * x - 4 * x)) educed at less than 1";
 
-    // Parallel region starts here
     #pragma omp parallel for shared(data, fm_data)
     for (int i = 0; i < nrTrees; ++i) {
-        int tree_id = i + 1; // Each thread gets a unique tree_id
-        generate_tree(data, fm_data, tree_id);
+        generate_tree(data, fm_data, i + 1); // Each thread gets a unique tree_id
     }
-    // Parallel region ends here
 
-    sort(bestTrees.begin(), bestTrees.end(), cmp);
+    std::sort(bestTrees.begin(), bestTrees.end(), 
+        [](const tree &a, const tree &b) {
+            return a.fm_value > b.fm_value;
+        }
+    );
 
     for (int i = 0; i < NR_BEST_TREES; ++i) {
         store_tree(i + 1, bestTrees[i]);
     }
+}
+
+int main(int argc, char **argv) {
+    int nrTrees;
+    std::string file1, file2;
+
+    parseArguments(argc, argv, nrTrees, file1, file2);
+
+    auto data = readCsvFile(file1);
+    auto fm_data = readCsvFile(file2);
+
+    generateAndStoreTrees(nrTrees, data, fm_data);
 
     return 0;
 }
