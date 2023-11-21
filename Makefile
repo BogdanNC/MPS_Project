@@ -32,11 +32,21 @@ $(FILE_NAME).o: $(FILE_NAME).cpp
 # *******************************************
 # ************ RUN **************************
 # *******************************************
-run_10:
-	./$(FILE_NAME) 10 $(FOLDER)/$(FILE1).$(EXTENSION) $(FOLDER)/$(FILE2).$(EXTENSION)
 
-run_25:
-	./$(FILE_NAME) 25 $(FOLDER)/$(FILE1).$(EXTENSION) $(FOLDER)/$(FILE2).$(EXTENSION)
+run_global_3:
+	./$(FILE_NAME) global 3 $(FOLDER)/$(FILE1).$(EXTENSION) $(FOLDER)/$(FILE2).$(EXTENSION)
+
+run_global_10:
+	./$(FILE_NAME) global 10 $(FOLDER)/$(FILE1).$(EXTENSION) $(FOLDER)/$(FILE2).$(EXTENSION)
+
+run_global_25:
+	./$(FILE_NAME) global 25 $(FOLDER)/$(FILE1).$(EXTENSION) $(FOLDER)/$(FILE2).$(EXTENSION)
+
+run_global_50:
+	./$(FILE_NAME) global 50 $(FOLDER)/$(FILE1).$(EXTENSION) $(FOLDER)/$(FILE2).$(EXTENSION)
+
+run_global_100:
+	./$(FILE_NAME) global 100 $(FOLDER)/$(FILE1).$(EXTENSION) $(FOLDER)/$(FILE2).$(EXTENSION)
 
 # *******************************************
 # *********** CLEAN *************************
@@ -46,7 +56,7 @@ clean:
 
 clean_output:
 	rm global/top5Graphs/f_measure*
-	rm global/top5Graphs/tree_to*
+	rm global/top5Graphs/tree*
 
 # *******************************************
 # ********** TEST ***************************

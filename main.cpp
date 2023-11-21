@@ -1,34 +1,26 @@
 #include <bits/stdc++.h>
+#include <filesystem>
 #include <omp.h>
 using namespace std;
 
-#define NUMBER_OF_ARGS 4
-#define MIN_TREE_LEVELS 3
-#define MAX_TREE_LEVELS 6
-#define MIN_NODES_ON_LEVEL 2
-#define MAX_NODES_ON_LEVEL 7
-#define NR_OF_FUNCTIONS 100
-#define NR_BEST_TREES 7
-#define TREES_TO_LOAD_FOLDER "global/top5Graphs/"
-#define CSV_EXTENSION ".csv"
-#define GENERATE_UNIQUE 0
+// ./o_global 5 global/GlobalTest.csv global/LUTTest.csv
 
 mt19937 rng((unsigned int) chrono::steady_clock::now().time_since_epoch().count());
+#define NUMBER_OF_ARGS_GLOBAL 5
+#define NUMBER_OF_ARGS_LOCAL 3
 
-struct node {
-    int node_id;
-    int function_id;
-    double value;
-    vector<int> child_nodes_id;
-};
+#define MAX_TREE_LEVELS 7
+#define MAX_NODES_ON_LEVEL 10
 
-struct tree {
-    double fm_value;
-    int nr_nodes;
-    vector<node> nodes;
-};
+#define NR_OF_FUNCTIONS 100
+#define NR_BEST_TREES 3
+#define BEST_TREES_PATH_GLOBAL "global/top5Graphs/"
+#define BEST_TREES_PATH_LOCAL "local/top5Graphs/"
+#define FILE_INPUTS_LOCAL "local/test"
+#define CSV_EXTENSION ".csv"
 
-vector<tree> bestTrees;
+#define TREES_TO_LOAD_FOLDER_GLOBAL "global/top5Graphs/"
+#define TREES_TO_LOAD_FOLDER_LOCAL "local/top5Graphs/"
 
 // Optimization
 double result = 0;
@@ -877,6 +869,23 @@ static inline double function100(const std::vector<double>& numbers) {
     return fmod(result, 1.0);
 }
 
+struct node {
+    int node_id;
+    int function_id;
+    double value;
+    vector<int> child_nodes_id;
+};
+map<int, string> func_description;
+
+
+struct tree {
+    double fm_value;
+    int nr_nodes;
+    vector<node> nodes;
+};
+
+vector<tree> bestTrees;
+
 bool fileExists(const std::string& filename) {
     std::ifstream file(filename);
     return file.good();
@@ -905,11 +914,17 @@ void loadTreeFromFile(const string& filename, tree& current_tree) {
     for_each(current_tree.nodes.begin(), current_tree.nodes.end(), readNode);
 }
 
-void load_trees() {
+void load_trees(bool global = 1) {
     bool filesFound = true;
 
+    std::string path;
+    if(global == 1)
+        path = TREES_TO_LOAD_FOLDER_GLOBAL;
+    else
+        path = TREES_TO_LOAD_FOLDER_LOCAL;
+
     for (int i = 1; i <= NR_BEST_TREES; ++i) {
-        std::string filename = std::string(TREES_TO_LOAD_FOLDER) + "tree_to_load_" + std::to_string(i);
+        std::string filename = path + "tree_to_load_" + std::to_string(i);
         if (!fileExists(filename)) {
             filesFound = false;
             break;
@@ -925,7 +940,7 @@ void load_trees() {
 
     tree current_tree;
     for (int i = 1; i <= NR_BEST_TREES; ++i) {
-        std::string filename = std::string(TREES_TO_LOAD_FOLDER) + "tree_to_load_" + std::to_string(i);
+        std::string filename = path + "tree_to_load_" + std::to_string(i);
         loadTreeFromFile(filename, current_tree);
         bestTrees.push_back(current_tree);
     }
@@ -937,10 +952,17 @@ void load_trees() {
     std::cout << std::endl<< "Finished loading trees: " << std::endl;
 }
 
-void store_tree(int index, const tree& t) {
+void store_tree(int index, const tree& t, bool global = 1) {
     stringstream tree_filename, fm_filename;
-    tree_filename << TREES_TO_LOAD_FOLDER << "tree_to_load_" << index;
-    fm_filename << TREES_TO_LOAD_FOLDER << "f_measure_tree_" << index;
+
+    if(global == 1) {
+        tree_filename << TREES_TO_LOAD_FOLDER_GLOBAL << "tree_to_load_" << index;
+        fm_filename << TREES_TO_LOAD_FOLDER_GLOBAL << "f_measure_tree_" << index;
+    } else {
+        tree_filename << TREES_TO_LOAD_FOLDER_LOCAL << "tree_to_load_" << index;
+        fm_filename << TREES_TO_LOAD_FOLDER_LOCAL << "f_measure_tree_" << index;
+    }
+    
 
     ofstream tree_file(tree_filename.str()), fm_file(fm_filename.str());
     fm_file << "Fm Value: " << t.fm_value << '\n'
@@ -955,9 +977,13 @@ void store_tree(int index, const tree& t) {
     }
 }
 
-void store_tree_explicit(int index, const tree& t) {
+void store_tree_explicit(int index, const tree& t, bool global = 1) {
     stringstream tree_filename;
-    tree_filename << TREES_TO_LOAD_FOLDER << "tree_to_load_" << index << "_explicit";
+
+    if(global == 1)
+        tree_filename << TREES_TO_LOAD_FOLDER_GLOBAL << "tree_to_load_" << index << "_explicit";
+    else
+        tree_filename << TREES_TO_LOAD_FOLDER_LOCAL << "tree_to_load_" << index << "_explicit";
 
     ofstream tree_file(tree_filename.str());
     tree_file << "Fmeasure: " << t.fm_value << "\n"
@@ -979,506 +1005,654 @@ void store_tree_explicit(int index, const tree& t) {
     }
 }
 
+void printNodeWithDepth(const node& n, int depth, const string& prefix) {
+    cout << prefix;
+    if (depth > 0) {
+        cout << "|-- ";
+    }
+
+    cout << "*" << n.node_id << "-(" << n.value << ")-[" << n.function_id << "]";
+    if (n.child_nodes_id.empty()) {
+        cout << " (LEAF)";
+    }
+    cout << endl;
+}
+
+void printNodeWithDepth(ofstream& out, const node& n, int depth, const string& prefix) {
+    out << prefix;
+    if (depth > 0) {
+        out << "|-- ";
+    }
+
+    out << "*" << n.node_id << "-(" << n.value << ")-[" << n.function_id << "]";
+    if (n.child_nodes_id.empty()) {
+        out << " (LEAF)";
+    }
+    out << endl;
+}
+
+void printTreeWithDepth(ofstream& out, const vector<node>& nodes, const map<int, int>& nodeIndexMap, int node_id, int depth = 0, const string& prefix = "") {
+    auto it = nodeIndexMap.find(node_id);
+    if (it == nodeIndexMap.end()) return; // Node not found
+
+    const node& n = nodes[it->second];
+    printNodeWithDepth(out, n, depth, prefix);
+
+    string newPrefix = prefix + (depth > 0 ? "|   " : "    ");
+    for (size_t i = 0; i < n.child_nodes_id.size(); ++i) {
+        int child_id = n.child_nodes_id[i];
+        if (i == n.child_nodes_id.size() - 1) {
+            newPrefix = prefix + "    ";
+        }
+        printTreeWithDepth(out, nodes, nodeIndexMap, child_id, depth + 1, newPrefix);
+    }
+}
+
+void findAndPrintRoots(ofstream& out, const vector<node>& nodes, const map<int, int>& nodeIndexMap) {
+    // Finding root nodes (nodes that are not children of any other nodes)
+    set<int> childNodes;
+    for (const auto& n : nodes) {
+        childNodes.insert(n.child_nodes_id.begin(), n.child_nodes_id.end());
+    }
+
+    for (const auto& n : nodes) {
+        if (childNodes.find(n.node_id) == childNodes.end()) {
+            // This node is not a child of any other node, hence it's a root
+            printTreeWithDepth(out, nodes, nodeIndexMap, n.node_id);
+            // out << endl; // Separate different trees/roots for clarity
+        }
+    }
+}
+
 void tree_build(int id, map<int, node> &nodes) {
-    std::for_each(nodes[id].child_nodes_id.begin(), nodes[id].child_nodes_id.end(), 
-              [&](int childId) { tree_build(childId, nodes); });
-
+    for (auto x : nodes[id].child_nodes_id) {
+        tree_build(x, nodes);
+    }
     vector<double> child_values;
-    std::transform(nodes[id].child_nodes_id.begin(), nodes[id].child_nodes_id.end(), std::back_inserter(child_values), 
-               [&](int childId) { return nodes[childId].value; });
-
-    switch(nodes[id].function_id) {
-    case 1:
-        nodes[id].value = function1(child_values);
-        break;
-    case 2:
-        nodes[id].value = function2(child_values);
-        break;
-    case 3:
-        nodes[id].value = function3(child_values);
-        break;
-    case 4:
-        nodes[id].value = function4(child_values);
-        break;
-    case 5:
-        nodes[id].value = function5(child_values);
-        break;
-    case 6:
-        nodes[id].value = function6(child_values);
-        break;
-    case 7:
-        nodes[id].value = function7(child_values);
-        break;
-    case 8:
-        nodes[id].value = function8(child_values);
-        break;
-    case 9:
-        nodes[id].value = function9(child_values);
-        break;
-    case 10:
-        nodes[id].value = function10(child_values);
-        break;
-    case 11:
-        nodes[id].value = function11(child_values);
-        break;
-    case 12:
-        nodes[id].value = function12(child_values);
-        break;
-    case 13:
-        nodes[id].value = function13(child_values);
-        break;
-    case 14:
-        nodes[id].value = function14(child_values);
-        break;
-    case 15:
-        nodes[id].value = function15(child_values);
-        break;
-    case 16:
-        nodes[id].value = function16(child_values);
-        break;
-    case 17:
-        nodes[id].value = function17(child_values);
-        break;
-    case 18:
-        nodes[id].value = function18(child_values);
-        break;
-    case 19:
-        nodes[id].value = function19(child_values);
-        break;
-    case 20:
-        nodes[id].value = function20(child_values);
-        break;
-    case 21:
-        nodes[id].value = function21(child_values);
-        break;
-    case 22:
-        nodes[id].value = function22(child_values);
-        break;
-    case 23:
-        nodes[id].value = function23(child_values);
-        break;
-    case 24:
-        nodes[id].value = function24(child_values);
-        break;
-    case 25:
-        nodes[id].value = function25(child_values);
-        break;
-    case 26:
-        nodes[id].value = function26(child_values);
-        break;
-    case 27:
-        nodes[id].value = function27(child_values);
-        break;
-    case 28:
-        nodes[id].value = function28(child_values);
-        break;
-    case 29:
-        nodes[id].value = function29(child_values);
-        break;
-    case 30:
-        nodes[id].value = function30(child_values);
-        break;
-    case 31:
-        nodes[id].value = function31(child_values);
-        break;
-    case 32:
-        nodes[id].value = function32(child_values);
-        break;
-    case 33:
-        nodes[id].value = function33(child_values);
-        break;
-    case 34:
-        nodes[id].value = function34(child_values);
-        break;
-    case 35:
-        nodes[id].value = function35(child_values);
-        break;
-    case 36:
-        nodes[id].value = function36(child_values);
-        break;
-    case 37:
-        nodes[id].value = function37(child_values);
-        break;
-    case 38:
-        nodes[id].value = function38(child_values);
-        break;
-    case 39:
-        nodes[id].value = function39(child_values);
-        break;
-    case 40:
-        nodes[id].value = function40(child_values);
-        break;
-    case 41:
-        nodes[id].value = function41(child_values);
-        break;
-    case 42:
-        nodes[id].value = function42(child_values);
-        break;
-    case 43:
-        nodes[id].value = function43(child_values);
-        break;
-    case 44:
-        nodes[id].value = function44(child_values);
-        break;
-    case 45:
-        nodes[id].value = function45(child_values);
-        break;
-    case 46:
-        nodes[id].value = function46(child_values);
-        break;
-    case 47:
-        nodes[id].value = function47(child_values);
-        break;
-    case 48:
-        nodes[id].value = function48(child_values);
-        break;
-    case 49:
-        nodes[id].value = function49(child_values);
-        break;
-    case 50:
-        nodes[id].value = function50(child_values);
-        break;
-    case 51:
-        nodes[id].value = function51(child_values);
-        break;
-    case 52:
-        nodes[id].value = function52(child_values);
-        break;
-    case 53:
-        nodes[id].value = function53(child_values);
-        break;
-    case 54:
-        nodes[id].value = function54(child_values);
-        break;
-    case 55:
-        nodes[id].value = function55(child_values);
-        break;
-    case 56:
-        nodes[id].value = function56(child_values);
-        break;
-    case 57:
-        nodes[id].value = function57(child_values);
-        break;
-    case 58:
-        nodes[id].value = function58(child_values);
-        break;
-    case 59:
-        nodes[id].value = function59(child_values);
-        break;
-    case 60:
-        nodes[id].value = function60(child_values);
-        break;
-    case 61:
-        nodes[id].value = function61(child_values);
-        break;
-    case 62:
-        nodes[id].value = function62(child_values);
-        break;
-    case 63:
-        nodes[id].value = function63(child_values);
-        break;
-    case 64:
-        nodes[id].value = function64(child_values);
-        break;
-    case 65:
-        nodes[id].value = function65(child_values);
-        break;
-    case 66:
-        nodes[id].value = function66(child_values);
-        break;
-    case 67:
-        nodes[id].value = function67(child_values);
-        break;
-    case 68:
-        nodes[id].value = function68(child_values);
-        break;
-    case 69:
-        nodes[id].value = function69(child_values);
-        break;
-    case 70:
-        nodes[id].value = function70(child_values);
-        break;
-    case 71:
-        nodes[id].value = function71(child_values);
-        break;
-    case 72:
-        nodes[id].value = function72(child_values);
-        break;
-    case 73:
-        nodes[id].value = function73(child_values);
-        break;
-    case 74:
-        nodes[id].value = function74(child_values);
-        break;
-    case 75:
-        nodes[id].value = function75(child_values);
-        break;
-    case 76:
-        nodes[id].value = function76(child_values);
-        break;
-    case 77:
-        nodes[id].value = function77(child_values);
-        break;
-    case 78:
-        nodes[id].value = function78(child_values);
-        break;
-    case 79:
-        nodes[id].value = function79(child_values);
-        break;
-    case 80:
-        nodes[id].value = function80(child_values);
-        break;
-    case 81:
-        nodes[id].value = function81(child_values);
-        break;
-    case 82:
-        nodes[id].value = function82(child_values);
-        break;
-    case 83:
-        nodes[id].value = function83(child_values);
-        break;
-    case 84:
-        nodes[id].value = function84(child_values);
-        break;
-    case 85:
-        nodes[id].value = function85(child_values);
-        break;
-    case 86:
-        nodes[id].value = function86(child_values);
-        break;
-    case 87:
-        nodes[id].value = function87(child_values);
-        break;
-    case 88:
-        nodes[id].value = function88(child_values);
-        break;
-    case 89:
-        nodes[id].value = function89(child_values);
-        break;
-    case 90:
-        nodes[id].value = function90(child_values);
-        break;
-    case 91:
-        nodes[id].value = function91(child_values);
-        break;
-    case 92:
-        nodes[id].value = function92(child_values);
-        break;
-    case 93:
-        nodes[id].value = function93(child_values);
-        break;
-    case 94:
-        nodes[id].value = function94(child_values);
-        break;
-    case 95:
-        nodes[id].value = function95(child_values);
-        break;
-    case 96:
-        nodes[id].value = function96(child_values);
-        break;
-    case 97:
-        nodes[id].value = function97(child_values);
-        break;
-    case 98:
-        nodes[id].value = function98(child_values);
-        break;
-    case 99:
-        nodes[id].value = function99(child_values);
-        break;
-    case 100:
-        nodes[id].value = function100(child_values);
-        break;
-    case -1:
-        // Nod frunza, nu aplicam functie
-        break;
-    default:
-        std::cerr << "Function number not found: " << nodes[id].function_id << "!\n";
-        break;
-    }   
+    for (auto c : nodes[id].child_nodes_id) {
+        child_values.push_back(nodes[c].value);
+    }
+    if (nodes[id].function_id != -1) {
+        switch(nodes[id].function_id) {
+        case 1:
+            nodes[id].value = function1(child_values);
+            break;
+        case 2:
+            nodes[id].value = function2(child_values);
+            break;
+        case 3:
+            nodes[id].value = function3(child_values);
+            break;
+        case 4:
+            nodes[id].value = function4(child_values);
+            break;
+        case 5:
+            nodes[id].value = function5(child_values);
+            break;
+        case 6:
+            nodes[id].value = function6(child_values);
+            break;
+        case 7:
+            nodes[id].value = function7(child_values);
+            break;
+        case 8:
+            nodes[id].value = function8(child_values);
+            break;
+        case 9:
+            nodes[id].value = function9(child_values);
+            break;
+        case 10:
+            nodes[id].value = function10(child_values);
+            break;
+        case 11:
+            nodes[id].value = function11(child_values);
+            break;
+        case 12:
+            nodes[id].value = function12(child_values);
+            break;
+        case 13:
+            nodes[id].value = function13(child_values);
+            break;
+        case 14:
+            nodes[id].value = function14(child_values);
+            break;
+        case 15:
+            nodes[id].value = function15(child_values);
+            break;
+        case 16:
+            nodes[id].value = function16(child_values);
+            break;
+        case 17:
+            nodes[id].value = function17(child_values);
+            break;
+        case 18:
+            nodes[id].value = function18(child_values);
+            break;
+        case 19:
+            nodes[id].value = function19(child_values);
+            break;
+        case 20:
+            nodes[id].value = function20(child_values);
+            break;
+        case 21:
+            nodes[id].value = function21(child_values);
+            break;
+        case 22:
+            nodes[id].value = function22(child_values);
+            break;
+        case 23:
+            nodes[id].value = function23(child_values);
+            break;
+        case 24:
+            nodes[id].value = function24(child_values);
+            break;
+        case 25:
+            nodes[id].value = function25(child_values);
+            break;
+        case 26:
+            nodes[id].value = function26(child_values);
+            break;
+        case 27:
+            nodes[id].value = function27(child_values);
+            break;
+        case 28:
+            nodes[id].value = function28(child_values);
+            break;
+        case 29:
+            nodes[id].value = function29(child_values);
+            break;
+        case 30:
+            nodes[id].value = function30(child_values);
+            break;
+        case 31:
+            nodes[id].value = function31(child_values);
+            break;
+        case 32:
+            nodes[id].value = function32(child_values);
+            break;
+        case 33:
+            nodes[id].value = function33(child_values);
+            break;
+        case 34:
+            nodes[id].value = function34(child_values);
+            break;
+        case 35:
+            nodes[id].value = function35(child_values);
+            break;
+        case 36:
+            nodes[id].value = function36(child_values);
+            break;
+        case 37:
+            nodes[id].value = function37(child_values);
+            break;
+        case 38:
+            nodes[id].value = function38(child_values);
+            break;
+        case 39:
+            nodes[id].value = function39(child_values);
+            break;
+        case 40:
+            nodes[id].value = function40(child_values);
+            break;
+        case 41:
+            nodes[id].value = function41(child_values);
+            break;
+        case 42:
+            nodes[id].value = function42(child_values);
+            break;
+        case 43:
+            nodes[id].value = function43(child_values);
+            break;
+        case 44:
+            nodes[id].value = function44(child_values);
+            break;
+        case 45:
+            nodes[id].value = function45(child_values);
+            break;
+        case 46:
+            nodes[id].value = function46(child_values);
+            break;
+        case 47:
+            nodes[id].value = function47(child_values);
+            break;
+        case 48:
+            nodes[id].value = function48(child_values);
+            break;
+        case 49:
+            nodes[id].value = function49(child_values);
+            break;
+        case 50:
+            nodes[id].value = function50(child_values);
+            break;
+        case 51:
+            nodes[id].value = function51(child_values);
+            break;
+        case 52:
+            nodes[id].value = function52(child_values);
+            break;
+        case 53:
+            nodes[id].value = function53(child_values);
+            break;
+        case 54:
+            nodes[id].value = function54(child_values);
+            break;
+        case 55:
+            nodes[id].value = function55(child_values);
+            break;
+        case 56:
+            nodes[id].value = function56(child_values);
+            break;
+        case 57:
+            nodes[id].value = function57(child_values);
+            break;
+        case 58:
+            nodes[id].value = function58(child_values);
+            break;
+        case 59:
+            nodes[id].value = function59(child_values);
+            break;
+        case 60:
+            nodes[id].value = function60(child_values);
+            break;
+        case 61:
+            nodes[id].value = function61(child_values);
+            break;
+        case 62:
+            nodes[id].value = function62(child_values);
+            break;
+        case 63:
+            nodes[id].value = function63(child_values);
+            break;
+        case 64:
+            nodes[id].value = function64(child_values);
+            break;
+        case 65:
+            nodes[id].value = function65(child_values);
+            break;
+        case 66:
+            nodes[id].value = function66(child_values);
+            break;
+        case 67:
+            nodes[id].value = function67(child_values);
+            break;
+        case 68:
+            nodes[id].value = function68(child_values);
+            break;
+        case 69:
+            nodes[id].value = function69(child_values);
+            break;
+        case 70:
+            nodes[id].value = function70(child_values);
+            break;
+        case 71:
+            nodes[id].value = function71(child_values);
+            break;
+        case 72:
+            nodes[id].value = function72(child_values);
+            break;
+        case 73:
+            nodes[id].value = function73(child_values);
+            break;
+        case 74:
+            nodes[id].value = function74(child_values);
+            break;
+        case 75:
+            nodes[id].value = function75(child_values);
+            break;
+        case 76:
+            nodes[id].value = function76(child_values);
+            break;
+        case 77:
+            nodes[id].value = function77(child_values);
+            break;
+        case 78:
+            nodes[id].value = function78(child_values);
+            break;
+        case 79:
+            nodes[id].value = function79(child_values);
+            break;
+        case 80:
+            nodes[id].value = function80(child_values);
+            break;
+        case 81:
+            nodes[id].value = function81(child_values);
+            break;
+        case 82:
+            nodes[id].value = function82(child_values);
+            break;
+        case 83:
+            nodes[id].value = function83(child_values);
+            break;
+        case 84:
+            nodes[id].value = function84(child_values);
+            break;
+        case 85:
+            nodes[id].value = function85(child_values);
+            break;
+        case 86:
+            nodes[id].value = function86(child_values);
+            break;
+        case 87:
+            nodes[id].value = function87(child_values);
+            break;
+        case 88:
+            nodes[id].value = function88(child_values);
+            break;
+        case 89:
+            nodes[id].value = function89(child_values);
+            break;
+        case 90:
+            nodes[id].value = function90(child_values);
+            break;
+        case 91:
+            nodes[id].value = function91(child_values);
+            break;
+        case 92:
+            nodes[id].value = function92(child_values);
+            break;
+        case 93:
+            nodes[id].value = function93(child_values);
+            break;
+        case 94:
+            nodes[id].value = function94(child_values);
+            break;
+        case 95:
+            nodes[id].value = function95(child_values);
+            break;
+        case 96:
+            nodes[id].value = function96(child_values);
+            break;
+        case 97:
+            nodes[id].value = function97(child_values);
+            break;
+        case 98:
+            nodes[id].value = function98(child_values);
+            break;
+        case 99:
+            nodes[id].value = function99(child_values);
+            break;
+        case 100:
+            nodes[id].value = function100(child_values);
+            break;
+        case -1:
+            // Nod frunza, nu aplicam functie
+            nodes[id].value = 0;
+            break;
+        default:
+            std::cerr << "Function number not found: " << nodes[id].function_id << "!\n";
+            break;
+        }
+    }
 }
 
 vector<int> randomPermutation(int n) {
-    vector<int> permutation(n);
-    iota(permutation.begin(), permutation.end(), 1);
-    shuffle(permutation.begin(), permutation.end(), mt19937(random_device()()));
+    vector<int> permutation;
+    for (int i = 1; i <= n; ++i) {
+        permutation.push_back(i);
+    }
+
+    random_device rd;
+    mt19937 gen(rd());
+
+    shuffle(permutation.begin(), permutation.end(), gen);
+
     return permutation;
 }
 
-int getRandomInRange(int min, int max) {
-    static std::random_device rd;
-    static std::mt19937 gen(rd());
-    std::uniform_int_distribution<> dist(min, max);
-    return dist(gen);
-}
 
-void initializeTreeLevels(vector<vector<int>>& tree_on_levels, int tree_levels, const vector<vector<string>>& data, tree& myTree) {
+tree generate_tree(int data_size, map<int, node> &nodes) {
+
+    int tree_levels = rng() % MAX_TREE_LEVELS + 1;
+    vector<vector<int>> tree_on_levels;
+    tree tree;
+    tree.nr_nodes = 0;
     int current_id = 1;
     for (int i = 1; i <= tree_levels; ++i) {
-        int nr_on_level = (i != tree_levels) ? getRandomInRange(MIN_NODES_ON_LEVEL, MAX_NODES_ON_LEVEL) : data[0].size();
-        vector<int> id_nodes(nr_on_level);
-        iota(begin(id_nodes), end(id_nodes), current_id);
-        current_id += nr_on_level;
-        tree_on_levels.push_back(move(id_nodes));
-        myTree.nr_nodes += nr_on_level; // Update nr_nodes here
+        int nr_on_level = rng() % MAX_NODES_ON_LEVEL + 1;
+        if (i == tree_levels) {
+            nr_on_level = data_size;
+        }
+        vector<int> id_nodes;
+        for (int j = 1; j <= nr_on_level; ++j) {
+            id_nodes.push_back(current_id++);
+        }
+        tree_on_levels.push_back(id_nodes);
+        tree.nr_nodes += nr_on_level;
     }
-}
 
-void initializeNodes(map<int, node>& nodes, const vector<vector<int>>& tree_on_levels) {
-    for (int i = 0; i < (int)tree_on_levels.size() - 1; ++i) {
+    for (int i = 0; i < (int) tree_on_levels.size() - 1; ++i) {
         for (auto id : tree_on_levels[i]) {
-            nodes[id] = {id, static_cast<int>(rng() % NR_OF_FUNCTIONS) + 1, -1.0, {}};
+            node new_node;
+            new_node.node_id = id;
+            new_node.value = -1;
+            new_node.function_id = rng() % NR_OF_FUNCTIONS + 1;
+            nodes[id] = new_node;
         }
     }
-}
 
-void connectTreeNodes(map<int, node>& nodes, const vector<vector<int>>& tree_on_levels) {
-    for (int level = 0; level < (int)tree_on_levels.size() - 1; ++level) {
-        int firstIdOnNextLevel = tree_on_levels[level + 1].front();
-        for (auto nodeId : tree_on_levels[level]) {
-            auto permutation = randomPermutation(tree_on_levels[level + 1].size());
-            transform(permutation.begin(), permutation.end(), back_inserter(nodes[nodeId].child_nodes_id),
-                      [firstIdOnNextLevel](int x) { return firstIdOnNextLevel + x - 1; });
+    for (int i = 0; i < (int) tree_on_levels.size() - 1; ++i) {
+        int first_id_on_next_level = tree_on_levels[i + 1][0];
+        for(auto &n : tree_on_levels[i]) {
+            int nr_childs = rng() % tree_on_levels[i + 1].size() + 1;
+            vector<int> permutation = randomPermutation(nr_childs);
+            for (auto x : permutation) {
+                nodes[n].child_nodes_id.push_back(first_id_on_next_level + x - 1);
+            }
         }
     }
-}
 
-void setLeafNodesValues(map<int, node>& nodes, const vector<vector<string>>& data, const vector<int>& leaf_node_ids) {
-    for (size_t i = 0; i < data.size(); ++i) {
-        int p = 0;
-        for (auto id : leaf_node_ids) {
-            nodes[id].value = stod(data[i][p++]);
-            nodes[id].function_id = -1;
-        }
-    }
-}
-
-void buildTree(tree& myTree, map<int, node>& nodes, const vector<vector<int>>& tree_on_levels, const vector<vector<string>>& data) {
-    initializeNodes(nodes, tree_on_levels);
-    connectTreeNodes(nodes, tree_on_levels);
-    setLeafNodesValues(nodes, data, tree_on_levels.back());
-}
-
-double calculateFinalFm(map<int, node>& nodes, const vector<vector<string>>& fm_data) {
-    double final_fm = 0;
-    for (auto& row : fm_data) {
-        tree_build(1, nodes);  // Assuming tree_build is defined elsewhere
-        double res = nodes.at(1).value;
-        final_fm += stod(row[static_cast<size_t>(255 * res)]);
-    }
-    return final_fm / fm_data.size();
-}
-
-void generate_tree(const vector<vector<string>>& data, const vector<vector<string>>& fm_data, int tree_id) {
-    map<int, node> nodes;
-    int tree_levels = getRandomInRange(MIN_TREE_LEVELS, MAX_TREE_LEVELS);
-    vector<vector<int>> tree_on_levels;
-    tree myTree;
-    myTree.nr_nodes = 0;
-
-    initializeTreeLevels(tree_on_levels, tree_levels, data, myTree);
-    buildTree(myTree, nodes, tree_on_levels, data);
-
-    myTree.fm_value = calculateFinalFm(nodes, fm_data);
-    transform(nodes.begin(), nodes.end(), back_inserter(myTree.nodes),
-              [](const pair<int, node>& pair) { return pair.second; });
-
-    bestTrees.push_back(myTree);
-}
-
-void parseArguments(int argc, char** argv, int& nrTrees, std::string& file1, std::string& file2) {
-    if (argc != NUMBER_OF_ARGS) {
-        std::cerr << "Wrong usage: different number of arguments!\n";
-        std::cerr << "Correct usage: ./o_global nrTrees file1.csv file2.csv\n";
-        exit(1);
-    }
-    nrTrees = std::atoi(argv[1]);
-    file1 = argv[2];
-    file2 = argv[3];
-    if (file1.find(CSV_EXTENSION) == std::string::npos || file2.find(CSV_EXTENSION) == std::string::npos) {
-        std::cerr << "Wrong file extensions!\n";
-        std::cerr << "Correct usage: ./o_global nrTrees file1.csv file2.csv\n";
-        exit(1);
-    }
-}
-
-std::vector<std::vector<std::string>> readCsvFile(const std::string& filename) {
-    std::ifstream file(filename);
-    if (!file) {
-        std::cerr << "Error opening file: " << filename << "\n";
-        exit(1);
+    for (auto id : tree_on_levels.back()) {
+        node new_node;
+        new_node.node_id = id;
+        new_node.function_id = -1;
+        nodes[id] = new_node;
     }
 
-    std::vector<std::vector<std::string>> data;
-    std::string line;
-    getline(file, line); // Skip header line
+    return tree;
+    
+}
+
+void processCsv(string filePath, vector<vector<string>> &data) {
+    data.clear();
+    ifstream file(filePath);
+    string line;
 
     while (getline(file, line)) {
-        std::stringstream ss(line);
-        std::vector<std::string> row;
-        std::string value;
+        vector<string> row;
+        stringstream ss(line);
+        string value;
         while (getline(ss, value, ',')) {
             row.push_back(value);
         }
         data.push_back(row);
     }
 
-    return data;
+    file.close();
 }
 
-void generateAndStoreTrees(int nrTrees, const std::vector<std::vector<std::string>>& data, const std::vector<std::vector<std::string>>& fm_data) {
-    
-    load_trees();
+void f_measure_build(int p, vector<vector<string>> data, vector<vector<string>> fm_data) {
 
-    #pragma omp parallel for shared(data, fm_data)
-    for (int i = 0; i < nrTrees; ++i) {
-        tree newTree;
-        generate_tree(data, fm_data, i + 1);
-        bestTrees.push_back(newTree); // Add the newly generated tree to the list
-    }
+    map<int, node> nodes;
 
-    for (const tree& t : bestTrees) {
-        std::cout << "Fm Value: " << t.fm_value << std::endl;
-    }
+    double final_fm = 0;
+    int nr_files;
+    tree tree;
 
-    // Sort the bestTrees vector to keep only the best NR_BEST_TREES
-    std::sort(bestTrees.begin(), bestTrees.end(), 
-        [](const tree &a, const tree &b) {
-            return a.fm_value > b.fm_value;
+    if (p != 1) {
+
+        bool first_tree = true;
+        for (const auto& entry : filesystem::directory_iterator(FILE_INPUTS_LOCAL)) {
+                processCsv(entry.path().string(), data);
+                if (first_tree) {
+                    tree = generate_tree(data[0].size() - 2, nodes);
+                    first_tree = false;
+                }
+                double tp = 0, fp = 0, tn = 0, fn = 0;
+                for (int i = 0; i < (int) data.size(); ++i) {
+                    int contor = 2;
+                    for (int j = 1; j <= tree.nr_nodes; ++j) {
+                        if (nodes[j].function_id == -1) {
+                            nodes[j].value = stod(data[i][contor++]);
+                        }
+                    }
+                    tree_build(1, nodes);
+                    double res = nodes[1].value;
+                    double pixel_value = stod(data[i][0]);
+                    int ground_truth = stoi(data[i][1]);
+                    int value = 1;
+                    if (pixel_value < res) {
+                        value = 0;
+                    }
+                    if (value == 1 && ground_truth == 1) {
+                        ++tp;
+                    }
+                    if (value == 1 && ground_truth == 0) {
+                        ++fp;
+                    }
+                    if (value == 0 && ground_truth == 0) {
+                        ++tn;
+                    }
+                    if (value == 0 && ground_truth == 1) {
+                        ++fn;
+                    }
+                }   
+                double current_fm = tp / (tp + 0.5 * (fp + fn));
+                final_fm += current_fm;
+                ++nr_files;
         }
-    );
+        final_fm /= nr_files;
+        final_fm *= 100;
+    } 
+    else {
+        for (int i = 0; i < (int) data.size(); ++i) {
 
-    // Keep only the top NR_BEST_TREES
-    if (bestTrees.size() > NR_BEST_TREES) {
-        bestTrees.resize(NR_BEST_TREES);
+            tree = generate_tree(data[i].size(), nodes);
+            int contor = 0;
+            for (int j = 1; j <= tree.nr_nodes; ++j) {
+                if (nodes[j].function_id == -1) {
+                    nodes[j].value = stod(data[i][contor]);
+                }
+            }
+            tree_build(1, nodes);
+            
+            double res = nodes[1].value;
+            double current_fm = stod(fm_data[i][255 * res]);
+            final_fm += current_fm;
+
+        }
+        final_fm /= data.size();
     }
+    tree.fm_value = final_fm;
+    for (int i = 1; i <= tree.nr_nodes; ++i) {
+        tree.nodes.push_back(nodes[i]);
+    }
+    bestTrees.push_back(tree);
+}
+
+bool cmp(const tree &a, const tree &b) {
+    return a.fm_value > b.fm_value;
+}
+
+
+void start_global_solution(int argc, char **argv) {
+
+    // ./o_solution global 3 global/GlobalTest.csv global/LUTTest.csv
+
+    int nrTrees = atoi(argv[2]);
+    string file1 = argv[3];
+    string file2 = argv[4];
+    if (file1.find(CSV_EXTENSION) == string::npos || file2.find(CSV_EXTENSION) == string::npos) {
+        cout << "Wrong file extensions!\n";
+        cout << "Correct ussage: ./o_global nrTrees file1.csv file2.csv\n";
+        exit(-1);
+    }
+
+    vector<vector<string>> data, fm_data;
+    processCsv(file1, data);
+    processCsv(file2, fm_data);
+    data.erase(data.begin());
+    fm_data.erase(fm_data.begin());
+    std::cout << "HERE 1" << std::endl;
+
+    load_trees(1);
+
+    std::cout << "HERE 2" << std::endl;
+    int tree_id = 1;
+
+    #pragma omp parallel for
+    for (int i = 0; i < nrTrees; ++i) {
+        f_measure_build(1, data, fm_data);
+        #pragma omp atomic
+        ++tree_id;
+    }
+
+    std::cout << "HERE 4" << std::endl;
+    sort(bestTrees.begin(), bestTrees.end(), cmp);
+    std::cout << "HERE 5" << std::endl;
+    
+    // Store the best NR_BEST_TREES trees
+    for (int i = 0; i < NR_BEST_TREES; ++i) {
+        store_tree(i + 1, bestTrees[i], 1);
+        store_tree_explicit(i + 1, bestTrees[i], 1);
+
+        map<int, int> nodeIndexMap;
+        for (int j = 0; j < bestTrees[i].nodes.size(); ++j) {
+            nodeIndexMap[bestTrees[i].nodes[j].node_id] = j;
+        }
+
+        // Open an ofstream for each tree to write the tree structure
+        stringstream tree_structure_filename;
+        tree_structure_filename << "global/top5Graphs/tree_structure_" << i + 1 << ".txt";
+        ofstream tree_structure_file(tree_structure_filename.str());
+
+        // Print the tree structure to the file
+        findAndPrintRoots(tree_structure_file, bestTrees[i].nodes, nodeIndexMap);
+
+        // Close the ofstream
+        tree_structure_file.close();
+    }
+    std::cout << "HERE 6" << std::endl;
+}
+
+void start_local_solution(int argc, char **argv) {
+    // ./o_solution local 3
+
+    int nrTrees = atoi(argv[2]);
+
+    vector<vector<string>> data;
+
+    load_trees(0);
+    int tree_id = 1;
+    vector<thread> threads;
+    for (int i = 0; i < nrTrees; ++i) {
+        threads.push_back(thread(f_measure_build, 2, data, data));
+        ++tree_id;
+    }
+    
+    for (auto &t : threads) {
+        t.join();
+    }
+    
+    sort(bestTrees.begin(), bestTrees.end(), cmp);
 
     // Store the best NR_BEST_TREES trees
     for (int i = 0; i < NR_BEST_TREES; ++i) {
-        store_tree(i + 1, bestTrees[i]);
-        store_tree_explicit(i + 1, bestTrees[i]);
+        store_tree(i + 1, bestTrees[i], 0);
+        store_tree_explicit(i + 1, bestTrees[i], 0);
     }
 
-    // Final trees
-    std::cout << "\nFinal stored trees:\n";
-    int i = 0;
-    for (const tree& t : bestTrees) {
-        if(i == NR_BEST_TREES)
-            break;
-        std::cout << "Fm Value: " << t.fm_value << std::endl;
-        i++;
-    }
 }
 
 int main(int argc, char **argv) {
-    int nrTrees;
-    std::string file1, file2;
 
-    parseArguments(argc, argv, nrTrees, file1, file2);
 
-    auto data = readCsvFile(file1);
-    auto fm_data = readCsvFile(file2);
+    if (strcmp(argv[1], "global") == 0) {
+        start_global_solution(argc, argv);
+    }
+    else {
+        start_local_solution(argc, argv);
+    }
 
-    generateAndStoreTrees(nrTrees, data, fm_data);
 
     return 0;
 }
