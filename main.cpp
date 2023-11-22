@@ -5,22 +5,22 @@ using namespace std;
 
 // ./o_global 5 global/GlobalTest.csv global/LUTTest.csv
 
-mt19937 rng((unsigned int) chrono::steady_clock::now().time_since_epoch().count());
 #define NUMBER_OF_ARGS_GLOBAL 5
 #define NUMBER_OF_ARGS_LOCAL 3
 
+#define MIN_TREE_LEVELS 3
 #define MAX_TREE_LEVELS 7
+#define MIN_NODES_ON_LEVEL 2
 #define MAX_NODES_ON_LEVEL 10
 
 #define NR_OF_FUNCTIONS 100
+// No less than the number of trees you generate in a run with the Makefile
 #define NR_BEST_TREES 7
-#define BEST_TREES_PATH_GLOBAL "global/top5Graphs/"
-#define BEST_TREES_PATH_LOCAL "local/top5Graphs/"
-#define FILE_INPUTS_LOCAL "local/test"
-#define CSV_EXTENSION ".csv"
 
+#define CSV_EXTENSION ".csv"
 #define TREES_TO_LOAD_FOLDER_GLOBAL "global/top5Graphs/"
 #define TREES_TO_LOAD_FOLDER_LOCAL "local/top5Graphs/"
+#define FILE_INPUTS_LOCAL "local/test"
 
 // Optimization
 double result = 0;
@@ -1061,13 +1061,16 @@ static inline void findAndPrintRoots(ofstream& out, const vector<node>& nodes, c
 }
 
 static inline void tree_build(int id, map<int, node> &nodes) {
+
     for (auto x : nodes[id].child_nodes_id) {
         tree_build(x, nodes);
     }
+
     vector<double> child_values;
     for (auto c : nodes[id].child_nodes_id) {
         child_values.push_back(nodes[c].value);
     }
+
     if (nodes[id].function_id != -1) {
         switch(nodes[id].function_id) {
         case 1:
@@ -1381,30 +1384,29 @@ static inline void tree_build(int id, map<int, node> &nodes) {
     }
 }
 
-static inline vector<int> randomPermutation(int n) {
-    vector<int> permutation;
-    for (int i = 1; i <= n; ++i) {
-        permutation.push_back(i);
-    }
-
-    random_device rd;
-    mt19937 gen(rd());
-
-    shuffle(permutation.begin(), permutation.end(), gen);
-
+vector<int> randomPermutation(int n) {
+    vector<int> permutation(n);
+    iota(permutation.begin(), permutation.end(), 1);
+    shuffle(permutation.begin(), permutation.end(), mt19937(random_device()()));
     return permutation;
 }
 
+int getRandomInRange(int min, int max) {
+    static std::random_device rd;
+    static std::mt19937 gen(rd());
+    std::uniform_int_distribution<> dist(min, max);
+    return dist(gen);
+}
 
 static inline tree generate_tree(int data_size, map<int, node> &nodes) {
 
-    int tree_levels = rng() % MAX_TREE_LEVELS + 1;
+    int tree_levels = getRandomInRange(1, MAX_TREE_LEVELS);
     vector<vector<int>> tree_on_levels;
     tree tree;
     tree.nr_nodes = 0;
     int current_id = 1;
     for (int i = 1; i <= tree_levels; ++i) {
-        int nr_on_level = rng() % MAX_NODES_ON_LEVEL + 1;
+        int nr_on_level =getRandomInRange(MIN_NODES_ON_LEVEL, MAX_NODES_ON_LEVEL);
         if (i == tree_levels) {
             nr_on_level = data_size;
         }
@@ -1421,7 +1423,7 @@ static inline tree generate_tree(int data_size, map<int, node> &nodes) {
             node new_node;
             new_node.node_id = id;
             new_node.value = -1;
-            new_node.function_id = rng() % NR_OF_FUNCTIONS + 1;
+            new_node.function_id = getRandomInRange(1, NR_OF_FUNCTIONS);
             nodes[id] = new_node;
         }
     }
@@ -1429,7 +1431,7 @@ static inline tree generate_tree(int data_size, map<int, node> &nodes) {
     for (int i = 0; i < (int) tree_on_levels.size() - 1; ++i) {
         int first_id_on_next_level = tree_on_levels[i + 1][0];
         for(auto &n : tree_on_levels[i]) {
-            int nr_childs = rng() % tree_on_levels[i + 1].size() + 1;
+            int nr_childs = getRandomInRange(1, tree_on_levels[i + 1].size());
             vector<int> permutation = randomPermutation(nr_childs);
             for (auto x : permutation) {
                 nodes[n].child_nodes_id.push_back(first_id_on_next_level + x - 1);
@@ -1546,7 +1548,9 @@ static inline void f_measure_build(int p, vector<vector<string>> data, vector<ve
     }
 
     bestTrees.push_back(tree);
+    
 }
+
 
 static inline void start_global_solution(int argc, char **argv) {
 
@@ -1648,6 +1652,9 @@ static inline void start_local_solution(int argc, char **argv) {
         }
     );
 
+    for (const tree& t : bestTrees) {
+        std::cout << "Fm Value: " << t.fm_value << std::endl;
+    }
 
     // Store the best NR_BEST_TREES trees
     for (int i = 0; i < NR_BEST_TREES; ++i) {
