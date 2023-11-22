@@ -33,9 +33,6 @@ $(FILE_NAME).o: $(FILE_NAME).cpp
 # ************ RUN **************************
 # *******************************************
 
-run_global_3:
-	./$(FILE_NAME) global 3 $(FOLDER)/$(FILE1).$(EXTENSION) $(FOLDER)/$(FILE2).$(EXTENSION)
-
 run_global_10:
 	./$(FILE_NAME) global 10 $(FOLDER)/$(FILE1).$(EXTENSION) $(FOLDER)/$(FILE2).$(EXTENSION)
 

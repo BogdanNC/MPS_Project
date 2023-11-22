@@ -13,7 +13,7 @@ mt19937 rng((unsigned int) chrono::steady_clock::now().time_since_epoch().count(
 #define MAX_NODES_ON_LEVEL 10
 
 #define NR_OF_FUNCTIONS 100
-#define NR_BEST_TREES 3
+#define NR_BEST_TREES 7
 #define BEST_TREES_PATH_GLOBAL "global/top5Graphs/"
 #define BEST_TREES_PATH_LOCAL "local/top5Graphs/"
 #define FILE_INPUTS_LOCAL "local/test"
@@ -875,8 +875,6 @@ struct node {
     double value;
     vector<int> child_nodes_id;
 };
-map<int, string> func_description;
-
 
 struct tree {
     double fm_value;
@@ -886,12 +884,12 @@ struct tree {
 
 vector<tree> bestTrees;
 
-bool fileExists(const std::string& filename) {
+static inline bool fileExists(const std::string& filename) {
     std::ifstream file(filename);
     return file.good();
 }
 
-void loadTreeFromFile(const string& filename, tree& current_tree) {
+static inline void loadTreeFromFile(const string& filename, tree& current_tree) {
     ifstream fin(filename);
     if (!fin) {
         cerr << "Error opening file: " << filename << endl;
@@ -914,7 +912,7 @@ void loadTreeFromFile(const string& filename, tree& current_tree) {
     for_each(current_tree.nodes.begin(), current_tree.nodes.end(), readNode);
 }
 
-void load_trees(bool global = 1) {
+static inline void load_trees(bool global = 1) {
     bool filesFound = true;
 
     std::string path;
@@ -951,7 +949,7 @@ void load_trees(bool global = 1) {
     }
 }
 
-void store_tree(int index, const tree& t, bool global = 1) {
+static inline void store_tree(int index, const tree& t, bool global = 1) {
     stringstream tree_filename, fm_filename;
 
     if(global == 1) {
@@ -962,7 +960,6 @@ void store_tree(int index, const tree& t, bool global = 1) {
         fm_filename << TREES_TO_LOAD_FOLDER_LOCAL << "f_measure_tree_" << index;
     }
     
-
     ofstream tree_file(tree_filename.str()), fm_file(fm_filename.str());
     fm_file << "Fm Value: " << t.fm_value << '\n'
             << "Number of nodes: " << t.nr_nodes << '\n';
@@ -976,7 +973,7 @@ void store_tree(int index, const tree& t, bool global = 1) {
     }
 }
 
-void store_tree_explicit(int index, const tree& t, bool global = 1) {
+static inline void store_tree_explicit(int index, const tree& t, bool global = 1) {
     stringstream tree_filename;
 
     if(global == 1)
@@ -1004,7 +1001,7 @@ void store_tree_explicit(int index, const tree& t, bool global = 1) {
     }
 }
 
-void printNodeWithDepth(const node& n, int depth, const string& prefix) {
+static inline void printNodeWithDepth(const node& n, int depth, const string& prefix) {
     cout << prefix;
     if (depth > 0) {
         cout << "|-- ";
@@ -1017,7 +1014,7 @@ void printNodeWithDepth(const node& n, int depth, const string& prefix) {
     cout << endl;
 }
 
-void printNodeWithDepth(ofstream& out, const node& n, int depth, const string& prefix) {
+static inline void printNodeWithDepth(ofstream& out, const node& n, int depth, const string& prefix) {
     out << prefix;
     if (depth > 0) {
         out << "|-- ";
@@ -1030,7 +1027,7 @@ void printNodeWithDepth(ofstream& out, const node& n, int depth, const string& p
     out << endl;
 }
 
-void printTreeWithDepth(ofstream& out, const vector<node>& nodes, const map<int, int>& nodeIndexMap, int node_id, int depth = 0, const string& prefix = "") {
+static inline void printTreeWithDepth(ofstream& out, const vector<node>& nodes, const map<int, int>& nodeIndexMap, int node_id, int depth = 0, const string& prefix = "") {
     auto it = nodeIndexMap.find(node_id);
     if (it == nodeIndexMap.end()) return; // Node not found
 
@@ -1047,7 +1044,7 @@ void printTreeWithDepth(ofstream& out, const vector<node>& nodes, const map<int,
     }
 }
 
-void findAndPrintRoots(ofstream& out, const vector<node>& nodes, const map<int, int>& nodeIndexMap) {
+static inline void findAndPrintRoots(ofstream& out, const vector<node>& nodes, const map<int, int>& nodeIndexMap) {
     // Finding root nodes (nodes that are not children of any other nodes)
     set<int> childNodes;
     for (const auto& n : nodes) {
@@ -1063,7 +1060,7 @@ void findAndPrintRoots(ofstream& out, const vector<node>& nodes, const map<int, 
     }
 }
 
-void tree_build(int id, map<int, node> &nodes) {
+static inline void tree_build(int id, map<int, node> &nodes) {
     for (auto x : nodes[id].child_nodes_id) {
         tree_build(x, nodes);
     }
@@ -1384,7 +1381,7 @@ void tree_build(int id, map<int, node> &nodes) {
     }
 }
 
-vector<int> randomPermutation(int n) {
+static inline vector<int> randomPermutation(int n) {
     vector<int> permutation;
     for (int i = 1; i <= n; ++i) {
         permutation.push_back(i);
@@ -1399,7 +1396,7 @@ vector<int> randomPermutation(int n) {
 }
 
 
-tree generate_tree(int data_size, map<int, node> &nodes) {
+static inline tree generate_tree(int data_size, map<int, node> &nodes) {
 
     int tree_levels = rng() % MAX_TREE_LEVELS + 1;
     vector<vector<int>> tree_on_levels;
@@ -1451,93 +1448,95 @@ tree generate_tree(int data_size, map<int, node> &nodes) {
     
 }
 
-void processCsv(string filePath, vector<vector<string>> &data) {
-    data.clear();
-    ifstream file(filePath);
-    string line;
+static inline void processCsv(const std::string& filePath, std::vector<std::vector<std::string>>& data) {
+    std::ifstream file(filePath);
+    if (!file) {
+        // Handle error: file opening failed
+        throw std::runtime_error("Failed to open file: " + filePath);
+    }
 
+    data.clear();
+    std::string line;
     while (getline(file, line)) {
-        vector<string> row;
-        stringstream ss(line);
-        string value;
+        std::vector<std::string> row;
+        std::istringstream ss(line);
+        std::string value;
         while (getline(ss, value, ',')) {
-            row.push_back(value);
+            row.push_back(std::move(value)); // Use std::move to avoid copying the string
         }
-        data.push_back(row);
+        data.push_back(std::move(row)); // Use std::move here as well
     }
 
     file.close();
 }
 
-void f_measure_build(int p, vector<vector<string>> data, vector<vector<string>> fm_data) {
-
+static inline void f_measure_build(int p, vector<vector<string>> data, vector<vector<string>> fm_data) {
     map<int, node> nodes;
 
     double final_fm = 0;
-    int nr_files;
+    int nr_files = 0;
     tree tree;
-
     if (p != 1) {
-
         bool first_tree = true;
         for (const auto& entry : filesystem::directory_iterator(FILE_INPUTS_LOCAL)) {
-                processCsv(entry.path().string(), data);
-                if (first_tree) {
-                    tree = generate_tree(data[0].size() - 2, nodes);
-                    first_tree = false;
+            processCsv(entry.path().string(), data);
+            if (first_tree) {
+                tree = generate_tree(data[0].size() - 2, nodes);
+                first_tree = false;
+            }
+            double tp = 0, fp = 0, tn = 0, fn = 0;
+            for (size_t i = 0; i < data.size(); ++i) {
+                int contor = 2;
+                for (int j = 1; j <= tree.nr_nodes; ++j) {
+                    if (nodes[j].function_id == -1) {
+                        nodes[j].value = stod(data[i][contor++]);
+                    }
                 }
-                double tp = 0, fp = 0, tn = 0, fn = 0;
-                for (int i = 0; i < (int) data.size(); ++i) {
-                    int contor = 2;
-                    for (int j = 1; j <= tree.nr_nodes; ++j) {
-                        if (nodes[j].function_id == -1) {
-                            nodes[j].value = stod(data[i][contor++]);
-                        }
-                    }
-                    tree_build(1, nodes);
-                    double res = nodes[1].value;
-                    double pixel_value = stod(data[i][0]);
-                    int ground_truth = stoi(data[i][1]);
-                    int value = 1;
-                    if (pixel_value < res) {
-                        value = 0;
-                    }
-                    if (value == 1 && ground_truth == 1) {
-                        ++tp;
-                    }
-                    if (value == 1 && ground_truth == 0) {
-                        ++fp;
-                    }
-                    if (value == 0 && ground_truth == 0) {
-                        ++tn;
-                    }
-                    if (value == 0 && ground_truth == 1) {
-                        ++fn;
-                    }
-                }   
-                double current_fm = tp / (tp + 0.5 * (fp + fn));
-                final_fm += current_fm;
-                ++nr_files;
+                tree_build(1, nodes);
+                double res = nodes[1].value;
+                double pixel_value = stod(data[i][0]);
+                int ground_truth = stoi(data[i][1]);
+                int value = pixel_value < res ? 0 : 1;
+                if (value == 1 && ground_truth == 1) tp++;
+                if (value == 1 && ground_truth == 0) fp++;
+                if (value == 0 && ground_truth == 0) tn++;
+                if (value == 0 && ground_truth == 1) fn++;
+            }   
+            double current_fm = tp / (tp + 0.5 * (fp + fn));
+            final_fm += current_fm;
+            ++nr_files;
         }
         final_fm /= nr_files;
         final_fm *= 100;
-    } 
-    else {
-        for (int i = 0; i < (int) data.size(); ++i) {
-
+    } else {
+        for (size_t i = 0; i < data.size(); ++i) {
             tree = generate_tree(data[i].size(), nodes);
             int contor = 0;
             for (int j = 1; j <= tree.nr_nodes; ++j) {
                 if (nodes[j].function_id == -1) {
-                    nodes[j].value = stod(data[i][contor]);
+                    nodes[j].value = stod(data[i][contor++]);
                 }
             }
             tree_build(1, nodes);
-            
             double res = nodes[1].value;
-            double current_fm = stod(fm_data[i][255 * res]);
-            final_fm += current_fm;
+            if (res < 0 || res > 1) {
+                // Handle the error for 'res' being out of expected range
+                // std::cerr << "Res out of bonds! Res:" << res << " value: " << nodes[1].value << std::endl;
+            }
 
+            int index = static_cast<int>(255 * res);
+            if (index < 0 || index >= fm_data[i].size()) {
+                // Handle the error for index being out of bounds
+                // std::cerr << "Index out of bonds: " << index << std::endl;
+            } else {
+                try {
+                    double current_fm = stod(fm_data[i][index]);
+                    final_fm += current_fm;
+                } catch (const std::invalid_argument& e) {
+                    // Handle the error for invalid string to double conversion
+                    // std::cerr << "Invalid string conversion to double!"<< std::endl;
+                }
+            }
         }
         final_fm /= data.size();
     }
@@ -1545,19 +1544,18 @@ void f_measure_build(int p, vector<vector<string>> data, vector<vector<string>> 
     for (int i = 1; i <= tree.nr_nodes; ++i) {
         tree.nodes.push_back(nodes[i]);
     }
+
     bestTrees.push_back(tree);
 }
 
-void start_global_solution(int argc, char **argv) {
+static inline void start_global_solution(int argc, char **argv) {
 
     // ./o_solution global 3 global/GlobalTest.csv global/LUTTest.csv
-
     int nrTrees = atoi(argv[2]);
     string file1 = argv[3];
     string file2 = argv[4];
     if (file1.find(CSV_EXTENSION) == string::npos || file2.find(CSV_EXTENSION) == string::npos) {
         cout << "Wrong file extensions!\n";
-        cout << "Correct ussage: ./o_global nrTrees file1.csv file2.csv\n";
         exit(-1);
     }
 
@@ -1566,20 +1564,15 @@ void start_global_solution(int argc, char **argv) {
     processCsv(file2, fm_data);
     data.erase(data.begin());
     fm_data.erase(fm_data.begin());
-
     load_trees(1);
 
     int tree_id = 1;
-
     #pragma omp parallel for
     for (int i = 0; i < nrTrees; ++i) {
         f_measure_build(1, data, fm_data);
         #pragma omp atomic
         ++tree_id;
     }
-
-    
-
     // Sort the bestTrees vector to keep only the best NR_BEST_TREES
     std::sort(bestTrees.begin(), bestTrees.end(), 
         [](const tree &a, const tree &b) {
@@ -1587,11 +1580,12 @@ void start_global_solution(int argc, char **argv) {
         }
     );
 
+    // Print the new trees
     std::cout << std::endl << "New trees:" << std::endl;
+    int cnt = 0;
     for (const tree& t : bestTrees) {
-        std::cout << "Fm Value: " << t.fm_value << std::endl;
+        std::cout << "Tree: " << ++cnt << " Fm Value: " << t.fm_value << std::endl;
     }
-    
     // Store the best NR_BEST_TREES trees
     for (int i = 0; i < NR_BEST_TREES; ++i) {
         store_tree(i + 1, bestTrees[i], 1);
@@ -1613,7 +1607,6 @@ void start_global_solution(int argc, char **argv) {
         // Close the ofstream
         tree_structure_file.close();
     }
-
     // Final trees
     std::cout << "\nFinal stored trees:\n";
     int i = 0;
@@ -1625,7 +1618,7 @@ void start_global_solution(int argc, char **argv) {
     }
 }
 
-void start_local_solution(int argc, char **argv) {
+static inline void start_local_solution(int argc, char **argv) {
     // ./o_solution local 3
 
     int nrTrees = atoi(argv[2]);
@@ -1674,7 +1667,6 @@ void start_local_solution(int argc, char **argv) {
 }
 
 int main(int argc, char **argv) {
-
 
     if (strcmp(argv[1], "global") == 0) {
         start_global_solution(argc, argv);
