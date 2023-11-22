@@ -1405,15 +1405,14 @@ static inline tree generate_tree(int data_size, map<int, node> &nodes) {
     tree tree;
     tree.nr_nodes = 0;
     int current_id = 1;
-    for (int i = 1; i <= tree_levels; ++i) {
-        int nr_on_level =getRandomInRange(MIN_NODES_ON_LEVEL, MAX_NODES_ON_LEVEL);
-        if (i == tree_levels) {
-            nr_on_level = data_size;
-        }
-        vector<int> id_nodes;
-        for (int j = 1; j <= nr_on_level; ++j) {
-            id_nodes.push_back(current_id++);
-        }
+    
+    for (int i = 1, nr_on_level; i <= tree_levels; ++i) {
+        nr_on_level = (i == tree_levels) ? data_size : getRandomInRange(MIN_NODES_ON_LEVEL, MAX_NODES_ON_LEVEL);
+        
+        vector<int> id_nodes(nr_on_level);
+        iota(id_nodes.begin(), id_nodes.end(), current_id);
+        current_id += nr_on_level;
+        
         tree_on_levels.push_back(id_nodes);
         tree.nr_nodes += nr_on_level;
     }
@@ -1450,26 +1449,30 @@ static inline tree generate_tree(int data_size, map<int, node> &nodes) {
     
 }
 
-static inline void processCsv(const std::string& filePath, std::vector<std::vector<std::string>>& data) {
-    std::ifstream file(filePath);
+std::vector<std::vector<std::string>> readCsvFile(const std::string& filename) {
+    std::ifstream file(filename);
     if (!file) {
-        // Handle error: file opening failed
-        throw std::runtime_error("Failed to open file: " + filePath);
+        std::cerr << "Error opening file: " << filename << "\n";
+        exit(1);
     }
 
-    data.clear();
+    std::vector<std::vector<std::string>> data;
     std::string line;
+    getline(file, line); // Skip header line
+
     while (getline(file, line)) {
+        std::stringstream ss(line);
         std::vector<std::string> row;
-        std::istringstream ss(line);
         std::string value;
         while (getline(ss, value, ',')) {
-            row.push_back(std::move(value)); // Use std::move to avoid copying the string
+            row.push_back(value);
         }
-        data.push_back(std::move(row)); // Use std::move here as well
+        data.push_back(row);
     }
 
     file.close();
+
+    return data;
 }
 
 static inline void f_measure_build(int p, vector<vector<string>> data, vector<vector<string>> fm_data) {
@@ -1481,7 +1484,7 @@ static inline void f_measure_build(int p, vector<vector<string>> data, vector<ve
     if (p != 1) {
         bool first_tree = true;
         for (const auto& entry : filesystem::directory_iterator(FILE_INPUTS_LOCAL)) {
-            processCsv(entry.path().string(), data);
+            auto data = readCsvFile(entry.path().string());
             if (first_tree) {
                 tree = generate_tree(data[0].size() - 2, nodes);
                 first_tree = false;
@@ -1564,8 +1567,8 @@ static inline void start_global_solution(int argc, char **argv) {
     }
 
     vector<vector<string>> data, fm_data;
-    processCsv(file1, data);
-    processCsv(file2, fm_data);
+    data = readCsvFile(file1);
+    fm_data = readCsvFile(file2);
     data.erase(data.begin());
     fm_data.erase(fm_data.begin());
     load_trees(1);
