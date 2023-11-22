@@ -949,7 +949,6 @@ void load_trees(bool global = 1) {
     for (const tree& t : bestTrees) {
         std::cout << "Fm Value: " << t.fm_value << std::endl;
     }
-    std::cout << std::endl<< "Finished loading trees: " << std::endl;
 }
 
 void store_tree(int index, const tree& t, bool global = 1) {
@@ -1549,11 +1548,6 @@ void f_measure_build(int p, vector<vector<string>> data, vector<vector<string>> 
     bestTrees.push_back(tree);
 }
 
-bool cmp(const tree &a, const tree &b) {
-    return a.fm_value > b.fm_value;
-}
-
-
 void start_global_solution(int argc, char **argv) {
 
     // ./o_solution global 3 global/GlobalTest.csv global/LUTTest.csv
@@ -1572,11 +1566,9 @@ void start_global_solution(int argc, char **argv) {
     processCsv(file2, fm_data);
     data.erase(data.begin());
     fm_data.erase(fm_data.begin());
-    std::cout << "HERE 1" << std::endl;
 
     load_trees(1);
 
-    std::cout << "HERE 2" << std::endl;
     int tree_id = 1;
 
     #pragma omp parallel for
@@ -1586,9 +1578,19 @@ void start_global_solution(int argc, char **argv) {
         ++tree_id;
     }
 
-    std::cout << "HERE 4" << std::endl;
-    sort(bestTrees.begin(), bestTrees.end(), cmp);
-    std::cout << "HERE 5" << std::endl;
+    
+
+    // Sort the bestTrees vector to keep only the best NR_BEST_TREES
+    std::sort(bestTrees.begin(), bestTrees.end(), 
+        [](const tree &a, const tree &b) {
+            return a.fm_value > b.fm_value;
+        }
+    );
+
+    std::cout << std::endl << "New trees:" << std::endl;
+    for (const tree& t : bestTrees) {
+        std::cout << "Fm Value: " << t.fm_value << std::endl;
+    }
     
     // Store the best NR_BEST_TREES trees
     for (int i = 0; i < NR_BEST_TREES; ++i) {
@@ -1611,7 +1613,16 @@ void start_global_solution(int argc, char **argv) {
         // Close the ofstream
         tree_structure_file.close();
     }
-    std::cout << "HERE 6" << std::endl;
+
+    // Final trees
+    std::cout << "\nFinal stored trees:\n";
+    int i = 0;
+    for (const tree& t : bestTrees) {
+        if(i == NR_BEST_TREES)
+            break;
+        std::cout << "Fm Value: " << t.fm_value << std::endl;
+        i++;
+    }
 }
 
 void start_local_solution(int argc, char **argv) {
@@ -1632,8 +1643,18 @@ void start_local_solution(int argc, char **argv) {
     for (auto &t : threads) {
         t.join();
     }
+
+    for (const tree& t : bestTrees) {
+        std::cout << "Fm Value: " << t.fm_value << std::endl;
+    }
     
-    sort(bestTrees.begin(), bestTrees.end(), cmp);
+    // Sort the bestTrees vector to keep only the best NR_BEST_TREES
+    std::sort(bestTrees.begin(), bestTrees.end(), 
+        [](const tree &a, const tree &b) {
+            return a.fm_value > b.fm_value;
+        }
+    );
+
 
     // Store the best NR_BEST_TREES trees
     for (int i = 0; i < NR_BEST_TREES; ++i) {
@@ -1641,6 +1662,15 @@ void start_local_solution(int argc, char **argv) {
         store_tree_explicit(i + 1, bestTrees[i], 0);
     }
 
+    // Final trees
+    std::cout << "\nFinal stored trees:\n";
+    int i = 0;
+    for (const tree& t : bestTrees) {
+        if(i == NR_BEST_TREES)
+            break;
+        std::cout << "Fm Value: " << t.fm_value << std::endl;
+        i++;
+    }
 }
 
 int main(int argc, char **argv) {
