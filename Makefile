@@ -48,17 +48,20 @@ run_global_100:
 run_global_1000:
 	./$(FILE_NAME) global 1000 $(FOLDER)/$(FILE1).$(EXTENSION) $(FOLDER)/$(FILE2).$(EXTENSION)
 
+run_local_1:
+	./$(FILE_NAME) local 1
+
+run_local_3:
+	./$(FILE_NAME) local 3
+
+run_local_5:
+	./$(FILE_NAME) local 5
+
+run_local_7:
+	./$(FILE_NAME) local 7
+
 run_local_10:
-	./$(FILE_NAME) local 10 $(FOLDER)/$(FILE1).$(EXTENSION) $(FOLDER)/$(FILE2).$(EXTENSION)
-
-run_local_25:
-	./$(FILE_NAME) local 25 $(FOLDER)/$(FILE1).$(EXTENSION) $(FOLDER)/$(FILE2).$(EXTENSION)
-
-run_local_50:
-	./$(FILE_NAME) local 50 $(FOLDER)/$(FILE1).$(EXTENSION) $(FOLDER)/$(FILE2).$(EXTENSION)
-
-run_local_100:
-	./$(FILE_NAME) local 100 $(FOLDER)/$(FILE1).$(EXTENSION) $(FOLDER)/$(FILE2).$(EXTENSION)
+	./$(FILE_NAME) local 10
 
 # *******************************************
 # *********** CLEAN *************************
@@ -66,9 +69,13 @@ run_local_100:
 clean:
 	rm -f $(OBJS) $(FILE_NAME)
 
-clean_output:
-	rm global/top5Graphs/f_measure*
-	rm global/top5Graphs/tree*
+clean_output_global:
+	rm global/top7Graphs/f_measure*
+	rm global/top7Graphs/tree*
+
+clean_output_local:
+	rm local/top7Graphs/f_measure*
+	rm local/top7Graphs/tree*
 
 # *******************************************
 # ********** TEST ***************************

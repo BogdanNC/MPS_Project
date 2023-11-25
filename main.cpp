@@ -4,8 +4,6 @@
 #include <math.h>
 using namespace std;
 
-// ./o_global 5 global/GlobalTest.csv global/LUTTest.csv
-
 #define NUMBER_OF_ARGS_GLOBAL 5
 #define NUMBER_OF_ARGS_LOCAL 3
 
@@ -16,7 +14,8 @@ using namespace std;
 
 #define NR_OF_FUNCTIONS 20
 // No less than the number of trees you generate in a run with the Makefile
-#define NR_BEST_TREES 7
+#define NR_BEST_TREES_GLOBAL 7
+#define NR_BEST_TREES_LOCAL 3
 
 #define CSV_EXTENSION ".csv"
 #define TREES_TO_LOAD_FOLDER_GLOBAL "global/top7Graphs/"
@@ -512,12 +511,16 @@ static inline void load_trees(bool global = 1) {
     bool filesFound = true;
 
     std::string path;
-    if(global == 1)
+    int nr_Best_Trees = 0;
+    if(global == 1) {
         path = TREES_TO_LOAD_FOLDER_GLOBAL;
-    else
+        nr_Best_Trees = NR_BEST_TREES_GLOBAL;
+    } else {
         path = TREES_TO_LOAD_FOLDER_LOCAL;
+        nr_Best_Trees = NR_BEST_TREES_LOCAL;
+    }
 
-    for (int i = 1; i <= NR_BEST_TREES; ++i) {
+    for (int i = 1; i <= nr_Best_Trees; ++i) {
         std::string filename = path + "tree_to_load_" + std::to_string(i);
         if (!fileExists(filename)) {
             filesFound = false;
@@ -533,7 +536,8 @@ static inline void load_trees(bool global = 1) {
     std::cout << "Files found! Reusing previous files in building the trees" << std::endl;
 
     tree current_tree;
-    for (int i = 1; i <= NR_BEST_TREES; ++i) {
+    #pragma omp parallel for
+    for (int i = 1; i <= nr_Best_Trees; ++i) {
         std::string filename = path + "tree_to_load_" + std::to_string(i);
         loadTreeFromFile(filename, current_tree);
         bestTrees.push_back(current_tree);
@@ -658,11 +662,13 @@ static inline void findAndPrintRoots(ofstream& out, const vector<node>& nodes, c
 
 static inline void tree_build(int id, map<int, node> &nodes) {
 
+    #pragma omp parallel for
     for (auto x : nodes[id].child_nodes_id) {
         tree_build(x, nodes);
     }
 
     vector<double> child_values;
+    #pragma omp parallel for
     for (auto c : nodes[id].child_nodes_id) {
         child_values.push_back(nodes[c].value);
     }
@@ -934,13 +940,14 @@ std::vector<std::vector<std::string>> readCsvFile(const std::string& filename) {
     return data;
 }
 
-static inline void f_measure_build(int p, vector<vector<string>> data, vector<vector<string>> fm_data) {
+static inline void f_measure_build(int global, vector<vector<string>> data, vector<vector<string>> fm_data) {
+    auto start = std::chrono::high_resolution_clock::now();
     map<int, node> nodes;
 
     double final_fm = 0;
     int nr_files = 0;
     tree tree;
-    if (p != 1) {
+    if (global == 0) { // local
         bool first_tree = true;
         for (const auto& entry : filesystem::directory_iterator(FILE_INPUTS_LOCAL)) {
             auto data = readCsvFile(entry.path().string());
@@ -949,8 +956,10 @@ static inline void f_measure_build(int p, vector<vector<string>> data, vector<ve
                 first_tree = false;
             }
             double tp = 0, fp = 0, tn = 0, fn = 0;
+            #pragma omp parallel for
             for (size_t i = 0; i < data.size(); ++i) {
                 int contor = 2;
+                #pragma omp parallel for
                 for (int j = 1; j <= tree.nr_nodes; ++j) {
                     if (nodes[j].function_id == -1) {
                         nodes[j].value = stod(data[i][contor++]);
@@ -972,7 +981,7 @@ static inline void f_measure_build(int p, vector<vector<string>> data, vector<ve
         }
         final_fm /= nr_files;
         final_fm *= 100;
-    } else {
+    } else { // global
         #pragma omp parallel for
         for (size_t i = 0; i < data.size(); ++i) {
             tree = generate_tree(data[i].size(), nodes);
@@ -1013,6 +1022,10 @@ static inline void f_measure_build(int p, vector<vector<string>> data, vector<ve
 
     bestTrees.push_back(tree);
     
+    auto stop = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+    cout << "Tree created in: " << duration.count() / 1000 << " seconds\n";
+    cout << "F measure: " << tree.fm_value << '\n';
 }
 
 // Function to check if a filename has a valid CSV extension
@@ -1047,9 +1060,14 @@ void printTrees(const std::vector<tree>& bestTrees) {
     }
 }
 // Function to store a tree and its structure
-void storeTreeAndStructure(int treeIndex, const tree& tree) {
-    store_tree(treeIndex, tree, 1);
-    store_tree_explicit(treeIndex, tree, 1);
+void storeTreeAndStructure(int treeIndex, const tree& tree, int global = 1) {
+    if(global == 1) {
+        store_tree(treeIndex, tree, 1);
+        store_tree_explicit(treeIndex, tree, 1);
+    } else {
+        store_tree(treeIndex, tree, 0);
+        store_tree_explicit(treeIndex, tree, 0);
+    }
 
     std::map<int, int> nodeIndexMap;
     for (int j = 0; j < tree.nodes.size(); ++j) {
@@ -1058,7 +1076,10 @@ void storeTreeAndStructure(int treeIndex, const tree& tree) {
 
     // Open an ofstream for writing the tree structure
     std::stringstream treeStructureFilename;
-    treeStructureFilename << "global/top7Graphs/tree_structure_" << treeIndex << ".txt";
+    if(global == 1)
+        treeStructureFilename << "global/top7Graphs/tree_structure_" << treeIndex << ".txt";
+    else
+        treeStructureFilename << "local/top7Graphs/tree_structure_" << treeIndex << ".txt";
     std::ofstream treeStructureFile(treeStructureFilename.str());
 
     // Print the tree structure to the file
@@ -1089,6 +1110,7 @@ static inline void start_global_solution(int argc, char **argv) {
     load_trees(1);
 
     int tree_id = 1;
+    std::cout << "\n";
     #pragma omp parallel for
     for (int i = 0; i < nrTrees; ++i) {
         f_measure_build(1, data, fm_data);
@@ -1102,8 +1124,8 @@ static inline void start_global_solution(int argc, char **argv) {
     // Print the new trees
     printTrees(bestTrees);
 
-    // Store the best NR_BEST_TREES trees and their structures
-    for (int i = 0; i < NR_BEST_TREES && i < bestTrees.size(); ++i) {
+    // Store the best NR_BEST_TREES_GLOBAL trees and their structures
+    for (int i = 0; i < NR_BEST_TREES_GLOBAL && i < bestTrees.size(); ++i) {
         storeTreeAndStructure(i + 1, bestTrees[i]);
     }
 
@@ -1111,7 +1133,7 @@ static inline void start_global_solution(int argc, char **argv) {
     std::cout << "\nFinal stored trees:\n";
     int i = 0;
     for (const tree& t : bestTrees) {
-        if (i == NR_BEST_TREES) {
+        if (i == NR_BEST_TREES_GLOBAL) {
             break;
         }
         std::cout << "Fm Value: " << t.fm_value << std::endl;
@@ -1132,9 +1154,10 @@ static inline void start_local_solution(int argc, char **argv) {
     vector<vector<string>> data;
 
     int tree_id = 1;
+    std::cout << "\n";
     #pragma omp parallel for
     for (int i = 0; i < nrTrees; ++i) {
-        f_measure_build(2, data, data);
+        f_measure_build(0, data, data);
         #pragma omp atomic
         ++tree_id;
     }
@@ -1149,16 +1172,16 @@ static inline void start_local_solution(int argc, char **argv) {
     // Print the new trees
     printTrees(bestTrees);
 
-    // Store the best NR_BEST_TREES trees and their structures
-    for (int i = 0; i < NR_BEST_TREES && i < bestTrees.size(); ++i) {
-        storeTreeAndStructure(i + 1, bestTrees[i]);
+    // Store the best NR_BEST_TREES_LOCAL trees and their structures
+    for (int i = 0; i < NR_BEST_TREES_LOCAL && i < bestTrees.size(); ++i) {
+        storeTreeAndStructure(i + 1, bestTrees[i], 0);
     }
 
     // Print the final stored trees
     std::cout << "\nFinal stored trees:\n";
     int i = 0;
     for (const tree& t : bestTrees) {
-        if (i == NR_BEST_TREES) {
+        if (i == NR_BEST_TREES_LOCAL) {
             break;
         }
         std::cout << "Fm Value: " << t.fm_value << std::endl;
