@@ -1554,23 +1554,77 @@ static inline void f_measure_build(int p, vector<vector<string>> data, vector<ve
     
 }
 
+// Function to check if a filename has a valid CSV extension
+bool hasValidCsvExtension(const std::string& filename) {
+    return filename.find(CSV_EXTENSION) != std::string::npos;
+}
+
+// Function to load data from a CSV file and remove the header
+std::vector<std::vector<std::string>> loadDataFromFile(const std::string& filename) {
+    std::vector<std::vector<std::string>> data = readCsvFile(filename);
+
+    if (!data.empty()) {
+        data.erase(data.begin()); // Remove the header
+    }
+
+    return data;
+}
+
+// Function to sort and keep the best trees
+void sortAndKeepBestTrees(std::vector<tree>& bestTrees) {
+    std::sort(bestTrees.begin(), bestTrees.end(), [](const tree& a, const tree& b) {
+        return a.fm_value > b.fm_value;
+    });
+}
+
+// Function to print trees
+void printTrees(const std::vector<tree>& bestTrees) {
+    std::cout << std::endl << "New trees:" << std::endl;
+    int cnt = 0;
+    for (const tree& t : bestTrees) {
+        std::cout << "Tree: " << ++cnt << " Fm Value: " << t.fm_value << std::endl;
+    }
+}
+// Function to store a tree and its structure
+void storeTreeAndStructure(int treeIndex, const tree& tree) {
+    store_tree(treeIndex, tree, 1);
+    store_tree_explicit(treeIndex, tree, 1);
+
+    std::map<int, int> nodeIndexMap;
+    for (int j = 0; j < tree.nodes.size(); ++j) {
+        nodeIndexMap[tree.nodes[j].node_id] = j;
+    }
+
+    // Open an ofstream for writing the tree structure
+    std::stringstream treeStructureFilename;
+    treeStructureFilename << "global/top5Graphs/tree_structure_" << treeIndex << ".txt";
+    std::ofstream treeStructureFile(treeStructureFilename.str());
+
+    // Print the tree structure to the file
+    findAndPrintRoots(treeStructureFile, tree.nodes, nodeIndexMap);
+
+    // Close the ofstream
+    treeStructureFile.close();
+}
 
 static inline void start_global_solution(int argc, char **argv) {
 
-    // ./o_solution global 3 global/GlobalTest.csv global/LUTTest.csv
-    int nrTrees = atoi(argv[2]);
-    string file1 = argv[3];
-    string file2 = argv[4];
-    if (file1.find(CSV_EXTENSION) == string::npos || file2.find(CSV_EXTENSION) == string::npos) {
-        cout << "Wrong file extensions!\n";
+    if (argc < 5) {
         exit(-1);
     }
 
-    vector<vector<string>> data, fm_data;
-    data = readCsvFile(file1);
-    fm_data = readCsvFile(file2);
-    data.erase(data.begin());
-    fm_data.erase(fm_data.begin());
+    int nrTrees = std::atoi(argv[2]);
+    std::string file1 = argv[3];
+    std::string file2 = argv[4];
+
+    if (!hasValidCsvExtension(file1) || !hasValidCsvExtension(file2)) {
+        std::cerr << "Wrong file extensions!" << std::endl;
+        exit(-1);
+    }
+
+    std::vector<std::vector<std::string>> data = loadDataFromFile(file1);
+    std::vector<std::vector<std::string>> fm_data = loadDataFromFile(file2);
+
     load_trees(1);
 
     int tree_id = 1;
@@ -1580,97 +1634,72 @@ static inline void start_global_solution(int argc, char **argv) {
         #pragma omp atomic
         ++tree_id;
     }
-    // Sort the bestTrees vector to keep only the best NR_BEST_TREES
-    std::sort(bestTrees.begin(), bestTrees.end(), 
-        [](const tree &a, const tree &b) {
-            return a.fm_value > b.fm_value;
-        }
-    );
+    
+    // Sort and keep the best trees
+    sortAndKeepBestTrees(bestTrees);
 
     // Print the new trees
-    std::cout << std::endl << "New trees:" << std::endl;
-    int cnt = 0;
-    for (const tree& t : bestTrees) {
-        std::cout << "Tree: " << ++cnt << " Fm Value: " << t.fm_value << std::endl;
+    printTrees(bestTrees);
+
+    // Store the best NR_BEST_TREES trees and their structures
+    for (int i = 0; i < NR_BEST_TREES && i < bestTrees.size(); ++i) {
+        storeTreeAndStructure(i + 1, bestTrees[i]);
     }
-    // Store the best NR_BEST_TREES trees
-    for (int i = 0; i < NR_BEST_TREES; ++i) {
-        store_tree(i + 1, bestTrees[i], 1);
-        store_tree_explicit(i + 1, bestTrees[i], 1);
 
-        map<int, int> nodeIndexMap;
-        for (int j = 0; j < bestTrees[i].nodes.size(); ++j) {
-            nodeIndexMap[bestTrees[i].nodes[j].node_id] = j;
-        }
-
-        // Open an ofstream for each tree to write the tree structure
-        stringstream tree_structure_filename;
-        tree_structure_filename << "global/top5Graphs/tree_structure_" << i + 1 << ".txt";
-        ofstream tree_structure_file(tree_structure_filename.str());
-
-        // Print the tree structure to the file
-        findAndPrintRoots(tree_structure_file, bestTrees[i].nodes, nodeIndexMap);
-
-        // Close the ofstream
-        tree_structure_file.close();
-    }
-    // Final trees
+    // Print the final stored trees
     std::cout << "\nFinal stored trees:\n";
     int i = 0;
     for (const tree& t : bestTrees) {
-        if(i == NR_BEST_TREES)
+        if (i == NR_BEST_TREES) {
             break;
+        }
         std::cout << "Fm Value: " << t.fm_value << std::endl;
         i++;
     }
 }
 
 static inline void start_local_solution(int argc, char **argv) {
-    // ./o_solution local 3
 
-    int nrTrees = atoi(argv[2]);
+    if (argc < 3) {
+        exit(-1);
+    }
+
+    int nrTrees = std::atoi(argv[2]);
+
+    load_trees(0);
 
     vector<vector<string>> data;
 
-    load_trees(0);
     int tree_id = 1;
-    vector<thread> threads;
+    #pragma omp parallel for
     for (int i = 0; i < nrTrees; ++i) {
-        threads.push_back(thread(f_measure_build, 2, data, data));
+        f_measure_build(2, data, data);
+        #pragma omp atomic
         ++tree_id;
     }
-    
-    for (auto &t : threads) {
-        t.join();
-    }
 
     for (const tree& t : bestTrees) {
         std::cout << "Fm Value: " << t.fm_value << std::endl;
     }
     
-    // Sort the bestTrees vector to keep only the best NR_BEST_TREES
-    std::sort(bestTrees.begin(), bestTrees.end(), 
-        [](const tree &a, const tree &b) {
-            return a.fm_value > b.fm_value;
-        }
-    );
+    // Sort and keep the best trees
+    sortAndKeepBestTrees(bestTrees);
 
-    for (const tree& t : bestTrees) {
-        std::cout << "Fm Value: " << t.fm_value << std::endl;
+    // Print the new trees
+    printTrees(bestTrees);
+
+    // Store the best NR_BEST_TREES trees and their structures
+    for (int i = 0; i < NR_BEST_TREES && i < bestTrees.size(); ++i) {
+        storeTreeAndStructure(i + 1, bestTrees[i]);
     }
 
-    // Store the best NR_BEST_TREES trees
-    for (int i = 0; i < NR_BEST_TREES; ++i) {
-        store_tree(i + 1, bestTrees[i], 0);
-        store_tree_explicit(i + 1, bestTrees[i], 0);
-    }
-
-    // Final trees
+    // Print the final stored trees
     std::cout << "\nFinal stored trees:\n";
     int i = 0;
     for (const tree& t : bestTrees) {
-        if(i == NR_BEST_TREES)
+        if (i == NR_BEST_TREES) {
             break;
+        }
         std::cout << "Fm Value: " << t.fm_value << std::endl;
         i++;
     }
