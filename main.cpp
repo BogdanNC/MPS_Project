@@ -19,8 +19,8 @@ using namespace std;
 #define NR_BEST_TREES 7
 
 #define CSV_EXTENSION ".csv"
-#define TREES_TO_LOAD_FOLDER_GLOBAL "global/top5Graphs/"
-#define TREES_TO_LOAD_FOLDER_LOCAL "local/top5Graphs/"
+#define TREES_TO_LOAD_FOLDER_GLOBAL "global/top7Graphs/"
+#define TREES_TO_LOAD_FOLDER_LOCAL "local/top7Graphs/"
 #define FILE_INPUTS_LOCAL "local/test"
 
 // Optimization
@@ -1058,7 +1058,7 @@ void storeTreeAndStructure(int treeIndex, const tree& tree) {
 
     // Open an ofstream for writing the tree structure
     std::stringstream treeStructureFilename;
-    treeStructureFilename << "global/top5Graphs/tree_structure_" << treeIndex << ".txt";
+    treeStructureFilename << "global/top7Graphs/tree_structure_" << treeIndex << ".txt";
     std::ofstream treeStructureFile(treeStructureFilename.str());
 
     // Print the tree structure to the file
