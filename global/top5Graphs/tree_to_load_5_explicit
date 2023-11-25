@@ -1,0 +1,141 @@
+Fmeasure: 60.966
+Num. nodes: 23
+
+Node id: 1
+Node function: 33
+Node value: 0.30216
+Node childs: 13
+Childs: 20 21 9 13 18 11 14 17 19 10 12 15 16 
+
+Node id: 2
+Node function: 2
+Node value: -1
+Node childs: 15
+Childs: 23 10 18 9 16 12 17 19 20 21 15 13 14 11 22 
+
+Node id: 3
+Node function: 30
+Node value: -1
+Node childs: 14
+Childs: 11 22 19 9 13 17 18 16 20 10 21 12 15 14 
+
+Node id: 4
+Node function: 3
+Node value: -1
+Node childs: 13
+Childs: 10 13 9 14 19 12 15 16 11 20 21 17 18 
+
+Node id: 5
+Node function: 2
+Node value: -1
+Node childs: 8
+Childs: 16 14 10 9 13 11 12 15 
+
+Node id: 6
+Node function: 14
+Node value: -1
+Node childs: 12
+Childs: 9 20 13 12 18 10 15 14 11 17 19 16 
+
+Node id: 7
+Node function: 21
+Node value: -1
+Node childs: 12
+Childs: 15 12 11 16 13 9 18 20 17 19 10 14 
+
+Node id: 8
+Node function: 45
+Node value: -1
+Node childs: 15
+Childs: 21 22 20 19 23 10 17 16 12 15 11 14 18 9 13 
+
+Node id: 9
+Node function: -1
+Node value: 0.35098
+Node childs: 0
+Childs: I AM A LEAF!
+
+Node id: 10
+Node function: -1
+Node value: 0.22549
+Node childs: 0
+Childs: I AM A LEAF!
+
+Node id: 11
+Node function: -1
+Node value: 0.178229
+Node childs: 0
+Childs: I AM A LEAF!
+
+Node id: 12
+Node function: -1
+Node value: 0.35098
+Node childs: 0
+Childs: I AM A LEAF!
+
+Node id: 13
+Node function: -1
+Node value: 0.351044
+Node childs: 0
+Childs: I AM A LEAF!
+
+Node id: 14
+Node function: -1
+Node value: 0.382353
+Node childs: 0
+Childs: I AM A LEAF!
+
+Node id: 15
+Node function: -1
+Node value: 0.582353
+Node childs: 0
+Childs: I AM A LEAF!
+
+Node id: 16
+Node function: -1
+Node value: 0.348264
+Node childs: 0
+Childs: I AM A LEAF!
+
+Node id: 17
+Node function: -1
+Node value: 0.323529
+Node childs: 0
+Childs: I AM A LEAF!
+
+Node id: 18
+Node function: -1
+Node value: 0.362745
+Node childs: 0
+Childs: I AM A LEAF!
+
+Node id: 19
+Node function: -1
+Node value: 0.24902
+Node childs: 0
+Childs: I AM A LEAF!
+
+Node id: 20
+Node function: -1
+Node value: 0.250797
+Node childs: 0
+Childs: I AM A LEAF!
+
+Node id: 21
+Node function: -1
+Node value: 0.362745
+Node childs: 0
+Childs: I AM A LEAF!
+
+Node id: 22
+Node function: -1
+Node value: 0.217647
+Node childs: 0
+Childs: I AM A LEAF!
+
+Node id: 23
+Node function: -1
+Node value: 0.335294
+Node childs: 0
+Childs: I AM A LEAF!
+

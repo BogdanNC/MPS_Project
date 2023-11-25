@@ -45,6 +45,9 @@ run_global_50:
 run_global_100:
 	./$(FILE_NAME) global 100 $(FOLDER)/$(FILE1).$(EXTENSION) $(FOLDER)/$(FILE2).$(EXTENSION)
 
+run_global_1000:
+	./$(FILE_NAME) global 1000 $(FOLDER)/$(FILE1).$(EXTENSION) $(FOLDER)/$(FILE2).$(EXTENSION)
+
 run_local_10:
 	./$(FILE_NAME) local 10 $(FOLDER)/$(FILE1).$(EXTENSION) $(FOLDER)/$(FILE2).$(EXTENSION)
 
