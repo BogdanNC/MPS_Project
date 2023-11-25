@@ -1,0 +1,225 @@
+Fmeasure: 16.9122
+Num. nodes: 37
+
+Node id: 1
+Node function: 6
+Node value: 0.442799
+Node childs: 1
+Childs: 16 
+
+Node id: 2
+Node function: 14
+Node value: -1
+Node childs: 6
+Childs: 16 17 18 19 21 20 
+
+Node id: 3
+Node function: 1
+Node value: -1
+Node childs: 6
+Childs: 16 18 20 17 21 19 
+
+Node id: 4
+Node function: 18
+Node value: -1
+Node childs: 1
+Childs: 16 
+
+Node id: 5
+Node function: 14
+Node value: -1
+Node childs: 1
+Childs: 16 
+
+Node id: 6
+Node function: 9
+Node value: -1
+Node childs: 2
+Childs: 17 16 
+
+Node id: 7
+Node function: 16
+Node value: -1
+Node childs: 6
+Childs: 19 18 20 16 17 21 
+
+Node id: 8
+Node function: 8
+Node value: -1
+Node childs: 6
+Childs: 16 18 19 17 20 21 
+
+Node id: 9
+Node function: 4
+Node value: -1
+Node childs: 2
+Childs: 17 16 
+
+Node id: 10
+Node function: 1
+Node value: -1
+Node childs: 6
+Childs: 17 21 18 20 16 19 
+
+Node id: 11
+Node function: 20
+Node value: -1
+Node childs: 5
+Childs: 17 20 19 18 16 
+
+Node id: 12
+Node function: 17
+Node value: -1
+Node childs: 4
+Childs: 16 18 19 17 
+
+Node id: 13
+Node function: 12
+Node value: -1
+Node childs: 2
+Childs: 17 16 
+
+Node id: 14
+Node function: 20
+Node value: -1
+Node childs: 5
+Childs: 19 17 18 16 20 
+
+Node id: 15
+Node function: 15
+Node value: -1
+Node childs: 6
+Childs: 16 19 21 20 18 17 
+
+Node id: 16
+Node function: 7
+Node value: 0.442799
+Node childs: 3
+Childs: 22 23 24 
+
+Node id: 17
+Node function: 16
+Node value: -1
+Node childs: 3
+Childs: 22 24 23 
+
+Node id: 18
+Node function: 20
+Node value: -1
+Node childs: 5
+Childs: 24 25 26 23 22 
+
+Node id: 19
+Node function: 5
+Node value: -1
+Node childs: 6
+Childs: 24 23 26 22 27 25 
+
+Node id: 20
+Node function: 13
+Node value: -1
+Node childs: 1
+Childs: 22 
+
+Node id: 21
+Node function: 5
+Node value: -1
+Node childs: 3
+Childs: 23 24 22 
+
+Node id: 22
+Node function: 6
+Node value: 0.761651
+Node childs: 6
+Childs: 32 30 29 31 33 28 
+
+Node id: 23
+Node function: 11
+Node value: 0.0980529
+Node childs: 8
+Childs: 33 34 28 31 32 35 30 29 
+
+Node id: 24
+Node function: 10
+Node value: 0.0237848
+Node childs: 7
+Childs: 32 29 28 34 33 30 31 
+
+Node id: 25
+Node function: 18
+Node value: -1
+Node childs: 8
+Childs: 31 34 35 33 29 30 28 32 
+
+Node id: 26
+Node function: 13
+Node value: -1
+Node childs: 2
+Childs: 29 28 
+
+Node id: 27
+Node function: 3
+Node value: -1
+Node childs: 4
+Childs: 29 31 30 28 
+
+Node id: 28
+Node function: -1
+Node value: 0.748219
+Node childs: 0
+Childs: I AM A LEAF!
+
+Node id: 29
+Node function: -1
+Node value: 0.012349
+Node childs: 0
+Childs: I AM A LEAF!
+
+Node id: 30
+Node function: -1
+Node value: 0.37411
+Node childs: 0
+Childs: I AM A LEAF!
+
+Node id: 31
+Node function: -1
+Node value: 0.5
+Node childs: 0
+Childs: I AM A LEAF!
+
+Node id: 32
+Node function: -1
+Node value: 0.746516
+Node childs: 0
+Childs: I AM A LEAF!
+
+Node id: 33
+Node function: -1
+Node value: 0.380457
+Node childs: 0
+Childs: I AM A LEAF!
+
+Node id: 34
+Node function: -1
+Node value: 0.609404
+Node childs: 0
+Childs: I AM A LEAF!
+
+Node id: 35
+Node function: -1
+Node value: 0.565193
+Node childs: 0
+Childs: I AM A LEAF!
+
+Node id: 36
+Node function: -1
+Node value: 0.598825
+Node childs: 0
+Childs: I AM A LEAF!
+
+Node id: 37
+Node function: -1
+Node value: 0.749635
+Node childs: 0
+Childs: I AM A LEAF!
+
