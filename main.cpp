@@ -826,7 +826,7 @@ static inline void tree_build(int id, map<int, node> &nodes) {
 
 std::mt19937 gen(std::random_device{}());
 
-vector<int> randomPermutation(int n) {
+static inline vector<int> randomPermutation(int n) {
     vector<int> permutation(n);
     iota(permutation.begin(), permutation.end(), 1);
     shuffle(permutation.begin(), permutation.end(), gen);
@@ -913,7 +913,7 @@ static inline tree generate_tree(int data_size, map<int, node> &nodes) {
     return tree;
 }
 
-std::vector<std::vector<std::string>> readCsvFile(const std::string& filename) {
+static inline std::vector<std::vector<std::string>> readCsvFile(const std::string& filename) {
     std::ifstream file(filename);
     if (!file) {
         std::cerr << "Error opening file: " << filename << "\n";
@@ -940,22 +940,48 @@ std::vector<std::vector<std::string>> readCsvFile(const std::string& filename) {
     return data;
 }
 
-static inline void f_measure_build(int global, vector<vector<string>> data, vector<vector<string>> fm_data) {
-    auto start = std::chrono::high_resolution_clock::now();
-    map<int, node> nodes;
+static inline void calculateMetrics(map<int, node> nodes, double& tp, double& fp, double& tn, double& fn, std::vector<std::string>& dataRow) {
+    double res = nodes[1].value;
+    double pixel_value = std::stod(dataRow[0]);
+    int ground_truth = std::stoi(dataRow[1]);
+    int value = pixel_value < res ? 0 : 1;
 
+    tp += (value == 1 && ground_truth == 1);
+    fp += (value == 1 && ground_truth == 0);
+    tn += (value == 0 && ground_truth == 0);
+    fn += (value == 0 && ground_truth == 1);
+}
+
+double final_fm = 0;
+int nr_files = 0;
+double tp = 0, fp = 0, tn = 0, fn = 0;
+
+static inline void fmeasure(int global, vector<vector<string>> data, vector<vector<string>> fm_data) {
+    
+    // Initialization
+    map<int, node> nodes;
+    tree tree;
     double final_fm = 0;
     int nr_files = 0;
-    tree tree;
-    if (global == 0) { // local
-        bool first_tree = true;
+    bool first_tree = true;
+
+    if(global == 1)
+        goto global_sol;
+    else if(global == 0)
+        goto local_sol;
+
+    local_sol:
+    try
+    {
         for (const auto& entry : filesystem::directory_iterator(FILE_INPUTS_LOCAL)) {
             auto data = readCsvFile(entry.path().string());
+            auto index = data[0].size() - 2;
             if (first_tree) {
-                tree = generate_tree(data[0].size() - 2, nodes);
+                tree = generate_tree(index, nodes);
                 first_tree = false;
             }
-            double tp = 0, fp = 0, tn = 0, fn = 0;
+            tp = fp = tn = fn = 0;
+
             #pragma omp parallel for
             for (size_t i = 0; i < data.size(); ++i) {
                 int contor = 2;
@@ -966,14 +992,7 @@ static inline void f_measure_build(int global, vector<vector<string>> data, vect
                     }
                 }
                 tree_build(1, nodes);
-                double res = nodes[1].value;
-                double pixel_value = stod(data[i][0]);
-                int ground_truth = stoi(data[i][1]);
-                int value = pixel_value < res ? 0 : 1;
-                if (value == 1 && ground_truth == 1) tp++;
-                if (value == 1 && ground_truth == 0) fp++;
-                if (value == 0 && ground_truth == 0) tn++;
-                if (value == 0 && ground_truth == 1) fn++;
+                calculateMetrics(nodes, tp, fp, tn, fn, data[i]);
             }   
             double current_fm = tp / (tp + 0.5 * (fp + fn));
             final_fm += current_fm;
@@ -981,7 +1000,17 @@ static inline void f_measure_build(int global, vector<vector<string>> data, vect
         }
         final_fm /= nr_files;
         final_fm *= 100;
-    } else { // global
+    }   
+    catch(std::exception e) {
+        std::cerr << "Exception!!!" << std::endl;
+        std::exit(-1);
+    }
+
+    goto finish;
+
+    global_sol:
+    try
+    {
         #pragma omp parallel for
         for (size_t i = 0; i < data.size(); ++i) {
             tree = generate_tree(data[i].size(), nodes);
@@ -1014,18 +1043,18 @@ static inline void f_measure_build(int global, vector<vector<string>> data, vect
             }
         }
         final_fm /= data.size();
+    } catch(std::exception e) {
+        std::cerr << "Exception!!!" << std::endl;
+        std::exit(-1);
     }
+    
+    finish:
     tree.fm_value = final_fm;
     for (int i = 1; i <= tree.nr_nodes; ++i) {
         tree.nodes.push_back(nodes[i]);
     }
 
     bestTrees.push_back(tree);
-    
-    auto stop = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
-    cout << "Tree created in: " << duration.count() / 1000 << " seconds\n";
-    cout << "F measure: " << tree.fm_value << '\n';
 }
 
 // Function to check if a filename has a valid CSV extension
@@ -1089,7 +1118,7 @@ void storeTreeAndStructure(int treeIndex, const tree& tree, int global = 1) {
     treeStructureFile.close();
 }
 
-static inline void start_global_solution(int argc, char **argv) {
+static inline void global_Sol(int argc, char **argv) {
 
     if (argc < 5) {
         exit(-1);
@@ -1113,7 +1142,11 @@ static inline void start_global_solution(int argc, char **argv) {
     std::cout << "\n";
     #pragma omp parallel for
     for (int i = 0; i < nrTrees; ++i) {
-        f_measure_build(1, data, fm_data);
+        auto start = std::chrono::high_resolution_clock::now();
+        fmeasure(1, data, fm_data);
+        auto stop = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+        cout << "Tree created in: " << duration.count() / 1000 << " seconds\n";
         #pragma omp atomic
         ++tree_id;
     }
@@ -1141,7 +1174,7 @@ static inline void start_global_solution(int argc, char **argv) {
     }
 }
 
-static inline void start_local_solution(int argc, char **argv) {
+static inline void local_Sol(int argc, char **argv) {
 
     if (argc < 3) {
         exit(-1);
@@ -1157,7 +1190,11 @@ static inline void start_local_solution(int argc, char **argv) {
     std::cout << "\n";
     #pragma omp parallel for
     for (int i = 0; i < nrTrees; ++i) {
-        f_measure_build(0, data, data);
+        auto start = std::chrono::high_resolution_clock::now();
+        fmeasure(0, data, data);
+        auto stop = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+        cout << "Tree created in: " << duration.count() / 1000 << " seconds\n";
         #pragma omp atomic
         ++tree_id;
     }
@@ -1189,13 +1226,14 @@ static inline void start_local_solution(int argc, char **argv) {
     }
 }
 
-int main(int argc, char **argv) {
-
-    if (strcmp(argv[1], "global") == 0) {
-        start_global_solution(argc, argv);
-    }
-    else {
-        start_local_solution(argc, argv);
+int main(int argc, char **argv)
+{
+    // Execute case
+    if (strcmp(argv[1], "local") == 0) {
+        local_Sol(argc, argv);
+        
+    } else if (strcmp(argv[1], "global") == 0){
+        global_Sol(argc, argv);
     }
 
     return 0;
